@@ -1,0 +1,5 @@
+Primena particija ekvivalencije u testiranju softvera
+Šta su d-u parovi?
+Kritični moduli u integracionom testiranju.
+Tehnika senzitizacije putanja
+Black Box testiranje
