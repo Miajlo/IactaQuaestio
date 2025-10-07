@@ -18,7 +18,7 @@ MONGODB_DB_NAME = os.getenv("MONGO_DB_NAME", "myapp")
 MONGO_APP_NAME = os.getenv("MONGO_APP_NAME", "MyApp")
 
 # Build connection string
-MONGODB_URL = f"mongodb+srv://{MONGO_USER}:{MONGO_PASSWORD}@masterlibrarian.bforp68.mongodb.net/?retryWrites=true&w=majority&appName=MasterLibrarian"
+MONGODB_URL = f"mongodb+srv://{MONGO_USER}:{MONGO_PASSWORD}@{MONGO_HOST}/?retryWrites=true&w=majority&appName=MasterLibrarian"
 
 # Global client variable
 client = None
