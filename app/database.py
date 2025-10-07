@@ -5,6 +5,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 from dotenv import load_dotenv
 
+from app.models.test import Test
 from app.models.testuser import TestUser
 
 # Load environment variables
@@ -44,7 +45,7 @@ async def init_db():
         # Initialize beanie with your models
         await init_beanie(
             database=database,
-            document_models=[TestUser]
+            document_models=[Test]
         )
 
         print("Beanie initialized successfully")

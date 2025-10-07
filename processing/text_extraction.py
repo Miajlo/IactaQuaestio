@@ -1,10 +1,12 @@
+from io import BytesIO
+
 import cv2
 import numpy as np
 import pytesseract
 from PIL import Image
 import re
 
-def extract_paper_robust(image_path):
+def extract_paper_robust_from_disk(image_path):
     img = cv2.imread(image_path)
     if img is None:
         raise ValueError(f"Could not read image: {image_path}")
@@ -35,7 +37,47 @@ def extract_paper_robust(image_path):
     paper = auto_crop_margins(img)
 
     if paper is not None:
-        print("✓ Auto-crop successful")
+        print("Auto-crop successful")
+        return paper
+
+    print("Using original image (no paper detected)")
+    return original
+
+def extract_paper_robust(img):
+    """
+    Extract the paper region from an image array (numpy ndarray).
+    """
+
+    if img is None:
+        raise ValueError("Input image is None")
+
+    original = img.copy()
+    h, w = img.shape[:2]
+
+    print(f"Image size: {w}x{h}")
+
+    # Method 1: Color-based detection (white paper)
+    print("Trying color-based detection...")
+    paper = detect_white_paper(img)
+
+    if paper is not None and paper.shape[0] > h * 0.3 and paper.shape[1] > w * 0.3:
+        print("Color detection successful")
+        return paper
+
+    # Method 2: Simple contour detection
+    print("Trying contour detection...")
+    paper = detect_by_contour(img)
+
+    if paper is not None and paper.shape[0] > h * 0.3 and paper.shape[1] > w * 0.3:
+        print("Contour detection successful")
+        return paper
+
+    # Method 3: Auto-crop margins
+    print("Trying auto-crop...")
+    paper = auto_crop_margins(img)
+
+    if paper is not None:
+        print("Auto-crop successful")
         return paper
 
     print("Using original image (no paper detected)")
@@ -208,16 +250,16 @@ def process_image(image_path, save_intermediate=True):
     # Extract paper
     paper = extract_paper_robust(image_path)
 
-    if save_intermediate:
-        cv2.imwrite('../extracted.jpg', paper)
-        print("Saved: extracted.jpg")
+    # if save_intermediate:
+    #     cv2.imwrite('../extracted.jpg', paper)
+    #     print("Saved: extracted.jpg")
 
     # Preprocess
     processed = preprocess_fast(paper)
 
-    if save_intermediate:
-        cv2.imwrite('preprocessed.jpg', processed)
-        print("Saved: preprocessed.jpg")
+    # if save_intermediate:
+    #     cv2.imwrite('preprocessed.jpg', processed)
+    #     print("Saved: preprocessed.jpg")
 
     # Extract text
     print("\nExtracting text...")
@@ -237,3 +279,131 @@ def extract_questions_from_text(text):
         if match and match.group(1):
             final_lines.append(match.group(1))
     return "\n".join(final_lines)
+
+import re
+
+def extract_questions_with_groups(text: str) -> str:
+    result = []
+    current_block = None
+
+    for line in text.split('\n'):
+        line = line.strip()
+        if not line:
+            continue
+
+        # Check if line starts with a number + dot
+        match = re.match(r'^(\d+)\.\s*(.*)', line)
+        if match:
+            # Save previous block if exists
+            if current_block:
+                result.append('\n'.join(current_block))
+            # Start new block
+            current_block = [f"{match.group(1)}. {match.group(2)}"]
+        elif current_block:
+            # Append line to current block
+            current_block.append(line)
+
+    # Add last block
+    if current_block:
+        result.append('\n'.join(current_block))
+
+    return '\n\n'.join(result)
+
+
+def process_image_from_bytes(image_bytes):
+    """
+    Process image bytes from uploaded file and extract structured text.
+    Converts bytes to numpy array for processing.
+
+    Args:
+        image_bytes: Raw bytes from uploaded image file
+
+    Returns:
+        str: Extracted text from the image
+    """
+    if image_bytes is None or len(image_bytes) == 0:
+        raise ValueError("Input image bytes is None or empty")
+
+    try:
+        # Convert bytes to numpy array
+        # Method 1: Using PIL (works for most formats)
+        image_pil = Image.open(BytesIO(image_bytes))
+        # Convert to RGB if necessary (handles RGBA, grayscale, etc.)
+        if image_pil.mode != 'RGB':
+            image_pil = image_pil.convert('RGB')
+        img = np.array(image_pil)
+
+        if img is None:
+            raise ValueError("Failed to decode image")
+
+    except Exception as e:
+        raise ValueError(f"Failed to convert image bytes to array: {str(e)}")
+
+    print("=" * 50)
+    print("Starting image processing from bytes...")
+    print(f"Image shape: {img.shape}")
+    print("=" * 50)
+
+    # Now call your original processing function with the numpy array
+    return process_image_from_array(img)
+
+
+def process_image_from_array(img):
+    """
+    Process an image array (numpy.ndarray) and extract structured text.
+
+    Args:
+        img: numpy.ndarray image
+
+    Returns:
+        str: Extracted text from the image
+    """
+    if img is None:
+        raise ValueError("Input image is None")
+
+    print("=" * 50)
+    print("Starting image processing from array...")
+    print("=" * 50)
+
+    # Extract paper region
+    paper = extract_paper_robust(img)
+
+    # Preprocess for OCR (binary)
+    processed = preprocess_fast(paper)
+
+    # Extract structured text
+    print("\nExtracting text...")
+    text = extract_text_structured(paper)
+
+    print("=" * 50)
+    print("RESULT:")
+    print("=" * 50)
+    print(text)
+
+    return extract_questions_with_groups(text)
+
+
+def safe_process_image(image_input):
+    """
+    Safe wrapper that handles both file paths, bytes, and numpy arrays
+
+    Args:
+        image_input: Can be file path (str), bytes, or numpy array
+
+    Returns:
+        str: Extracted text from the image
+    """
+    try:
+        if isinstance(image_input, str):
+            # File path
+            return process_image(image_input)
+        elif isinstance(image_input, bytes):
+            # Bytes
+            return process_image_from_bytes(image_input)
+        elif isinstance(image_input, np.ndarray):
+            # Numpy array
+            return process_image_from_array(image_input)
+        else:
+            raise ValueError(f"Unsupported input type: {type(image_input)}")
+    except Exception as e:
+        return f"Text extraction failed: {str(e)}"

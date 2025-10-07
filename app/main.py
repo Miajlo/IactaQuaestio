@@ -21,12 +21,12 @@ app = FastAPI(
 
 # Import and include router with error handling
 try:
-    from app.routers.users import router as users_router
+    from app.routers.test_router import router as test_router
 
     app.include_router(
-        users_router,
-        prefix="/api/users",
-        tags=["users"]
+        test_router,
+        prefix="/api/tests",
+        tags=["test_router"]
     )
     print("Users router loaded successfully")
 except Exception as e:
