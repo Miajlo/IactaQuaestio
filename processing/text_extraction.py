@@ -366,7 +366,7 @@ def process_image_from_array(img):
     print("=" * 50)
 
     # Extract paper region
-    paper = extract_paper_robust(img)
+    paper = img #extract_paper_robust(img)
 
     # Preprocess for OCR (binary)
     processed = preprocess_fast(paper)

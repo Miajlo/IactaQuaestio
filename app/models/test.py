@@ -16,7 +16,11 @@ class Test(Document):
     class Settings:
         name = "tests"
         indexes = [
-            [("subject_code", 1), ("exam_date", -1)],  # Query by subject, newest first
-            [("subject_code", 1), ("academic_year", 1)],  # Query by subject + year
-            [("exam_period", 1), ("academic_year", 1)]
+            [("subject_code", 1), ("academic_year", 1)],
+            [("subject_code", 1), ("exam_period", 1)],
+            [("exam_period", 1), ("academic_year", 1)],
+            [("created_at", -1)],
+
+            # Text index (use "text" as the value - this is MongoDB's special syntax)
+            [("full_text", "text")]
         ]
