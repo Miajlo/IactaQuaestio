@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.database import init_db, close_db
-from app.routers import faculty_router
+from app.routers import faculty_router, subject_router
 
 
 @asynccontextmanager
@@ -26,6 +26,8 @@ try:
 
     app.include_router(test_router, prefix="/tests", tags=["tests"])
     app.include_router(faculty_router,prefix="/faculties", tags=["faculties"])
+
+    app.include_router(subject_router, prefix="/subjects", tags=["subjects"])
     print("Users router loaded successfully")
 except Exception as e:
     print(f"Failed to load users router: {e}")
