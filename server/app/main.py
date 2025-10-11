@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
+from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db, close_db
 from app.routers import faculty_router, subject_router
 
@@ -18,6 +19,19 @@ app = FastAPI(
     description="FastAPI with MongoDB and Beanie",
     version="1.0.0",
     lifespan=lifespan
+)
+
+origins = [
+    "http://localhost:3000",   # your React dev server
+    "http://127.0.0.1:3000",   # alternate local host
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Import and include router with error handling
