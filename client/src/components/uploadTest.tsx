@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Upload, FileText, Calendar, BookOpen, CheckCircle, AlertCircle } from "lucide-react";
-import "../styles/uploadTest.css"
+import "../styles/UploadTest.css"
 import axiosInstance from "../utils/axiosInstance.ts";
 
 function UploadTestForm() {
@@ -44,7 +44,6 @@ function UploadTestForm() {
       setMessage("Test uploaded successfully!");
       setIsSuccess(true);
       
-      // Reset form after success
       setTimeout(() => {
         setSubjectCode("");
         setExamPeriod("");
