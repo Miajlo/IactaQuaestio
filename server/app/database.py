@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 
 from app.models.test import Test
 from app.models.testuser import TestUser
+from app.models.faculty import Faculty
+from app.models.subject import Subject
 
 # Load environment variables
 load_dotenv()
@@ -45,7 +47,12 @@ async def init_db():
         # Initialize beanie with your models
         await init_beanie(
             database=database,
-            document_models=[Test]
+            document_models=[
+                Test,
+                TestUser,
+                Faculty,
+                Subject,
+            ]
         )
 
         print("Beanie initialized successfully")

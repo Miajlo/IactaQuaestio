@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomePage from "./components/HomePage.tsx";
 import AuthForm from "./components/AuthForm.tsx";
 import UploadTest from "./components/UploadTest.tsx";
+import AdminPanel from "./components/AdminPanel.tsx";
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/auth" element={<AuthForm />} />
         <Route path="/uploadTest" element={<UploadTest />} />
+        <Route path="/admin" element={<AdminPanel />} />
       </Routes>
     </Router>
   );
