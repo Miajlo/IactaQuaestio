@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Building2, BookOpen, Layers, X, Save, Search, MapPin } from "lucide-react";
+import { Plus, Edit, Trash2, Building2, BookOpen, X, Save, Search, MapPin } from "lucide-react";
 import "../styles/AdminPanel.css";
 import axiosInstance from "../utils/axiosInstance.ts";
 
