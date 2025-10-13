@@ -10,7 +10,7 @@ class Subject(Document):
     module_code: str
     faculty_code: str
 
-    year: Annotated[int, Indexed(unique=True)]
+    year: int
     semester: int
     espb: int
     mandatory: bool
