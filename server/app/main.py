@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db, close_db
-from app.routers import faculty_router, subject_router
+from app.routers import faculty_router, subject_router, user_router
 
 
 @asynccontextmanager
@@ -36,17 +36,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Import and include router with error handling
 try:
     from app.routers.test_router import test_router
 
     app.include_router(test_router, prefix="/tests", tags=["tests"])
-    app.include_router(faculty_router,prefix="/faculties", tags=["faculties"])
-
+    app.include_router(faculty_router, prefix="/faculties", tags=["faculties"])
     app.include_router(subject_router, prefix="/subjects", tags=["subjects"])
-    print("Users router loaded successfully")
+    app.include_router(user_router, prefix="/users", tags=["users"])
+
+    print("All routers loaded successfully")
 except Exception as e:
-    print(f"Failed to load users router: {e}")
+    print(f"Failed to load routers: {e}")
     import traceback
 
     traceback.print_exc()
