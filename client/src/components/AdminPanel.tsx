@@ -126,7 +126,10 @@ function AdminPanel() {
       setShowDeleteModal(false);
       setDeleteTarget(null);
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
+      if(error.response?.data?.detail === "You cannot delete your own account") {
+        alert("You cannot delete your own account");
+      }
       console.error("Error deleting:", error);
     }
   };
@@ -157,7 +160,10 @@ function AdminPanel() {
     try {
       await userService.toggleAdmin(userId, !currentStatus);
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
+      if(error.response?.data?.detail === "You cannot remove your own admin privileges") {
+        alert("You cannot remove your own admin privileges.");
+      }
       console.error("Error toggling admin status:", error);
     }
   };
@@ -166,7 +172,10 @@ function AdminPanel() {
     try {
       await userService.toggleActive(userId, !currentStatus);
       fetchData();
-    } catch (error) {
+    } catch (error: any ) {
+      if(error.response?.data?.detail === "You cannot deactivate your own account") {
+        alert("You cannot deactivate your own account");
+      }
       console.error("Error toggling active status:", error);
     }
   };
