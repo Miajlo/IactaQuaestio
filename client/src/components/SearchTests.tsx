@@ -42,6 +42,7 @@ function SearchTests() {
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [tests, setTests] = useState<Test[]>([]);
+  const [allTests, setAllTests] = useState<Test[]>([]);
   
   const [selectedFaculty, setSelectedFaculty] = useState<Faculty | null>(null);
   const [selectedModule, setSelectedModule] = useState<Module | null>(null);
@@ -52,12 +53,48 @@ function SearchTests() {
   const [moduleSearch, setModuleSearch] = useState("");
   const [subjectSearch, setSubjectSearch] = useState("");
   const [testTextSearch, setTestTextSearch] = useState("");
+  const [expandedTests, setExpandedTests] = useState<Record<string, boolean>>({});
+
   
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     fetchFaculties();
   }, []);
+
+  const formatTestText = (text: string) => {
+    if (!text) return [];
+
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line !== '');
+
+    const questions: string[] = [];
+    let currentQuestion = '';
+
+    for (const line of lines) {
+      if (/^\d+\.\s+/.test(line)) {
+        if (currentQuestion) {
+          questions.push(currentQuestion.trim());
+        }
+        currentQuestion = line.replace(/^\d+\.\s+/, '');
+      } else {
+        if (currentQuestion || questions.length > 0) {
+          currentQuestion += ' ' + line;
+        }
+      }
+    }
+    
+    if (currentQuestion) {
+      questions.push(currentQuestion.trim());
+    }
+    return questions;
+  };
+
+  const toggleTest = (testId: string) => {
+    setExpandedTests(prev => ({
+      ...prev,
+      [testId]: !prev[testId]
+    }));
+  };
 
   const fetchFaculties = async () => {
     setIsLoading(true);
@@ -127,6 +164,7 @@ function SearchTests() {
           subject_code: subject.code
         }
       });
+      setAllTests(res.data);
       setTests(res.data);
     } catch (error) {
       console.error("Error fetching tests:", error);
@@ -134,18 +172,22 @@ function SearchTests() {
     setIsLoading(false);
   };
 
-  const handleTestSearch = async () => {
-    if (!selectedSubject || !testTextSearch.trim()) return;
+   const handleTestSearch = async () => {
+    if (!selectedSubject) return;
+
+    const query = testTextSearch.trim().toLowerCase();
+
+    if (!query) {
+      setTests(allTests);
+      return;
+    }
     
     setIsLoading(true);
     try {
-      const res = await axiosInstance.get(`/tests/find`, {
-        params: {
-          subject_code: selectedSubject.code,
-          text_search: testTextSearch
-        }
-      });
-      setTests(res.data);
+      const filtered = allTests.filter(test => 
+        test.full_text.toLowerCase().includes(query)
+      );
+      setTests(filtered);
     } catch (error) {
       console.error("Error searching tests:", error);
     }
@@ -359,7 +401,11 @@ function SearchTests() {
                     <span className="meta-item">Sem {subject.semester}</span>
                     <span className="meta-item">{subject.espb} ECTS</span>
                   </div>
-                  {subject.mandatory && <span className="mandatory-badge">Mandatory</span>}
+                  {subject.mandatory ? (
+                    <span className="mandatory-badge">Mandatory</span>
+                  ) : (
+                    <span className="mandatory-badge badge optional">Not Mandatory</span>
+                  )}
                 </div>
               ))}
             </div>
@@ -377,7 +423,7 @@ function SearchTests() {
                   placeholder="Search in test questions..."
                   value={testTextSearch}
                   onChange={(e) => setTestTextSearch(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleTestSearch()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleTestSearch()}
                 />
                 <button onClick={handleTestSearch} className="search-action-btn">
                   Search
@@ -385,26 +431,48 @@ function SearchTests() {
               </div>
             </div>
             <div className="tests-list">
-              {tests.map((test) => (
-                <div key={test._id} className="test-card">
-                  <div className="test-header">
-                    <div className="test-icon">
-                      <FileText />
+              {tests.map((test) => {
+                const questions = formatTestText(test.full_text);
+                const isExpanded = expandedTests[test._id];
+                const fullText = test.full_text;
+                const shouldTruncate = fullText.length > 300;
+
+                return (
+                  <div key={test._id} className="test-card">
+                    <div className="test-header">
+                      <div className="test-icon">
+                        <FileText />
+                      </div>
+                      <div className="test-info">
+                        <h3>{test.exam_period}</h3>
+                        <p className="test-meta">
+                          <Calendar size={14} />
+                          {test.academic_year} • {test.test_type}
+                        </p>
+                      </div>
                     </div>
-                    <div className="test-info">
-                      <h3>{test.exam_period}</h3>
-                      <p className="test-meta">
-                        <Calendar size={14} />
-                        {test.academic_year} • {test.test_type}
-                      </p>
+                    <div className="test-content">
+                      <ol className={`test-questions ${isExpanded ? 'expanded' : ''}`}>
+                        {questions.map((q, index) => (
+                          <li key={index}>
+                            <div className="test-text">
+                              {q}
+                            </div>
+                          </li>
+                        ))}
+                      </ol>
+                      {shouldTruncate && (
+                        <button
+                          className={`view-full-btn ${isExpanded ? 'expanded' : ''}`}
+                          onClick={() => toggleTest(test._id)}
+                        >
+                          {isExpanded ? 'Show Less' : 'Show More'}
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div className="test-content">
-                    <p className="test-text">{test.full_text.substring(0, 300)}...</p>
-                  </div>
-                  <button className="view-full-btn">View Full Test</button>
-                </div>
-              ))}
+                );
+              })}
               {tests.length === 0 && !isLoading && (
                 <div className="no-results">
                   <FileText size={48} />
