@@ -5,6 +5,7 @@ import AuthForm from "./components/AuthForm.tsx";
 import UploadTest from "./components/UploadTest.tsx";
 import AdminPanel from "./components/AdminPanel.tsx";
 import SearchTests from "./components/SearchTests.tsx";
+import ProtectedRoute from "./components/ProtectedRoute.tsx";
 
 function App() {
   return (
@@ -12,9 +13,9 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/auth" element={<AuthForm />} />
-        <Route path="/uploadTest" element={<UploadTest />} />
-        <Route path="/admin" element={<AdminPanel />} />
-        <Route path="/searchTests" element={<SearchTests />} />
+        <Route path="/uploadTest" element={<ProtectedRoute element={<UploadTest />} />} />
+        <Route path="/admin" element={<ProtectedRoute element={<AdminPanel />} requireAdmin />} />
+        <Route path="/searchTests" element={<ProtectedRoute element={<SearchTests />} />} />
       </Routes>
     </Router>
   );
