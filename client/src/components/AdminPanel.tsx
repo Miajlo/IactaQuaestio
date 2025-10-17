@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Building2, BookOpen, X, Save, Search, MapPin, Users, Shield, ShieldOff, UserX } from "lucide-react";
+import { Plus, Edit, Trash2, Building2, BookOpen, X, Save, Search, MapPin, Users, Shield, ShieldOff, UserX, ArrowLeft } from "lucide-react";
 import "../styles/AdminPanel.css";
 import axiosInstance from "../utils/axiosInstance.ts";
 import userService, { User } from "../services/userService.ts";
+import { useNavigate } from "react-router-dom";
 
 interface Address {
   street_name: string;
@@ -52,6 +53,8 @@ function AdminPanel() {
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{id: string, name: string, type: EntityType} | null>(null);
+
+  const navigate = useNavigate();
 
   const [facultyForm, setFacultyForm] = useState<Faculty>({
     name: "", code: "", description: "", address: { street_name: "", street_number: 1, city: "", postal_code: "" }, modules: []
@@ -218,6 +221,10 @@ function AdminPanel() {
       <div className="admin-header">
         <h1 className="admin-title">Admin Panel</h1>
         <p className="admin-subtitle">Manage faculties, subjects, modules, and users</p>
+        <button className="back-to-home-btn" onClick={() => navigate("/")}>
+          <ArrowLeft />
+          Back to home
+        </button>
       </div>
 
       <div className="admin-content">
@@ -269,7 +276,7 @@ function AdminPanel() {
           {activeTab === 'faculty' && filteredFaculties.map((faculty) => (
             <div key={faculty._id} className="admin-card">
               <div className="card-header">
-                <div className="card-icon faculty-icon">
+                <div className="card-icon-admin faculty-icon">
                   <Building2 />
                 </div>
                 <div className="card-info">
@@ -316,7 +323,7 @@ function AdminPanel() {
           {activeTab === 'subject' && filteredSubjects.map((subject) => (
             <div key={subject._id} className="admin-card">
               <div className="card-header">
-                <div className="card-icon subject-icon">
+                <div className="card-icon-admin subject-icon">
                   <BookOpen />
                 </div>
                 <div className="card-info">
@@ -363,7 +370,7 @@ function AdminPanel() {
           {activeTab === 'user' && filteredUsers.map((user) => (
             <div key={user.id} className="admin-card user-card">
               <div className="card-header">
-                <div className={`card-icon ${user.is_admin ? 'admin-user-icon' : 'regular-user-icon'}`}>
+                <div className={`card-icon-admin ${user.is_admin ? 'admin-user-icon' : 'regular-user-icon'}`}>
                   {user.is_admin ? <Shield /> : <Users />}
                 </div>
                 <div className="card-info">

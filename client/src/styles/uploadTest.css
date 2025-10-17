@@ -50,7 +50,7 @@
 }
 
 .form-label {
-  display: flex;
+  display: flex !important; 
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
