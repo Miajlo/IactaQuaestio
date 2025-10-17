@@ -5,7 +5,9 @@ click==8.3.0
 colorama==0.4.6
 dnspython==2.8.0
 dotenv==0.9.9
+email-validator==2.3.0
 fastapi==0.118.0
+filetype==1.2.0
 h11==0.16.0
 idna==3.10
 lazy-model==0.3.0
@@ -17,6 +19,7 @@ pillow==11.3.0
 pydantic==2.11.10
 pydantic_core==2.33.2
 pymongo==4.15.2
+PyMuPDF==1.26.5
 pytesseract==0.3.13
 python-dotenv==1.1.1
 python-multipart==0.0.20

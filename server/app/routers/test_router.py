@@ -4,33 +4,30 @@ from app.models.test import Test
 from app.models.testuser import TestUser
 from typing import List, Optional
 
-from processing.text_extraction import extract_text_structured, process_image_from_array, safe_process_image, \
+from processing.text_extraction import extract_text_structured, get_text_from_bytes, process_image_from_array, safe_process_image, \
     extract_questions_with_groups
 
 test_router = APIRouter()
 
 
+from fastapi import UploadFile, File, Form, HTTPException, status
+import asyncio
+
 @test_router.post("/", response_model=Test, status_code=status.HTTP_201_CREATED)
-async def create_test_from_image(
-        subject_code: str = Form(..., description="Subject code e.g. CS302"),
-        exam_period: str = Form(..., description="Exam period e.g. 'Januarski 2024'"),
-        academic_year: str = Form(..., description="Academic year e.g. '2023/2024'"),
-        test_type: str = Form("regular", description="Test type: regular, makeup, midterm, final, practical"),
-        image: UploadFile = File(..., description="Image file of the test/exam")
+async def create_test_from_file(
+    subject_code: str = Form(..., description="Subject code e.g. CS302"),
+    exam_period: str = Form(..., description="Exam period e.g. 'Januarski 2024'"),
+    academic_year: str = Form(..., description="Academic year e.g. '2023/2024'"),
+    test_type: str = Form("regular", description="Test type: regular, makeup, midterm, final, practical"),
+    file: UploadFile = File(..., description="Image or PDF file of the test/exam")
 ):
     """
-    Create a new test by extracting text from an uploaded image.
-
-    - **subject_code**: Code of the subject (e.g., "CS302")
-    - **exam_period**: Examination period (e.g., "Januarski 2024")
-    - **academic_year**: Academic year (e.g., "2023/2024")
-    - **test_type**: Type of test (regular, makeup, midterm, final, practical)
-    - **image**: Image file containing the test/exam
+    Create a new test by extracting text from an uploaded image or PDF.
     """
 
-    # Validate image file type
+    # Validate file extension
     allowed_extensions = ["jpg", "jpeg", "png", "pdf", "tiff", "bmp"]
-    file_extension = image.filename.split(".")[-1].lower()
+    file_extension = file.filename.split(".")[-1].lower()
 
     if file_extension not in allowed_extensions:
         raise HTTPException(
@@ -38,23 +35,23 @@ async def create_test_from_image(
             detail=f"File type not supported. Allowed types: {', '.join(allowed_extensions)}"
         )
 
-    # Read image content
+    # Read file content
     try:
-        image_content = await image.read()
+        file_content = await file.read()
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to read image file: {str(e)}"
+            detail=f"Failed to read file: {str(e)}"
         )
 
-    # Extract text from image
+    # Extract text using our new function in a background thread
     try:
-        extracted_text = safe_process_image(image_content)
+        extracted_text = await asyncio.to_thread(get_text_from_bytes, file_content, file.filename)
 
         if not extracted_text or extracted_text.strip() == "":
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="No text could be extracted from the image"
+                detail="No text could be extracted from the uploaded file"
             )
     except Exception as e:
         raise HTTPException(
@@ -68,7 +65,7 @@ async def create_test_from_image(
         exam_period=exam_period,
         academic_year=academic_year,
         test_type=test_type.lower(),
-        full_text= extract_questions_with_groups(extracted_text)
+        full_text=extract_questions_with_groups(extracted_text)
     )
 
     # Save to database
@@ -80,6 +77,7 @@ async def create_test_from_image(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to save test: {str(e)}"
         )
+
 
 
 @test_router.get("/find", response_model=List[Test])

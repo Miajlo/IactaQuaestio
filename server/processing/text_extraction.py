@@ -1,5 +1,8 @@
 from io import BytesIO
-
+import io
+from typing import Any, Callable, List, Optional
+import filetype
+import fitz
 import cv2
 import numpy as np
 import pytesseract
@@ -383,6 +386,20 @@ def process_image_from_array(img):
     return extract_questions_with_groups(text)
 
 
+def _is_pdf_bytes(b: bytes) -> bool:
+    return b[:4] == b"%PDF"
+
+
+def _is_image_bytes(b: bytes) -> bool:
+    kind = filetype.guess(b)
+    return kind is not None and kind.mime.startswith("image/")
+
+def _ext_from_name(name: Optional[str]) -> Optional[str]:
+    if not name:
+        return None
+    parts = name.rsplit(".", 1)
+    return parts[-1].lower() if len(parts) > 1 else None
+
 def safe_process_image(image_input):
     """
     Safe wrapper that handles both file paths, bytes, and numpy arrays
@@ -407,3 +424,60 @@ def safe_process_image(image_input):
             raise ValueError(f"Unsupported input type: {type(image_input)}")
     except Exception as e:
         return f"Text extraction failed: {str(e)}"
+    
+
+
+def _ext_from_name(name: Optional[str]) -> Optional[str]:
+    if not name:
+        return None
+    parts = name.rsplit(".", 1)
+    return parts[-1].lower() if len(parts) > 1 else None
+
+
+def get_text_from_bytes(data: bytes, filename: Optional[str] = None) -> str:
+    """
+    Unified text extraction: PDF or image bytes → text
+    Automatically uses your `safe_process_image` OCR.
+    """
+    # --- PDF detection ---
+    is_pdf = _is_pdf_bytes(data) or (filename and _ext_from_name(filename) == "pdf")
+
+    if is_pdf:
+        try:
+            doc = fitz.open(stream=data, filetype="pdf")
+            all_text = []
+
+            for page in doc:
+                text = page.get_text("text") or ""
+                if len(text.strip()) > 50:  # enough text → use it
+                    all_text.append(text)
+                else:
+                    # No text → render page to image and OCR
+                    pix = page.get_pixmap(dpi=300)
+                    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                    img_arr = np.array(img)
+                    all_text.append(safe_process_image(img_arr))
+
+            doc.close()
+            return "\n\n".join(all_text).strip()
+
+        except Exception as e:
+            # fallback: OCR on bytes as image
+            print(f"[get_text_from_bytes] PDF failed, OCR fallback: {e}")
+            return safe_process_image(data)
+
+    # --- Image detection ---
+    is_img = _is_image_bytes(data) or (filename and _ext_from_name(filename) in
+                                       ["jpg", "jpeg", "png", "tiff", "bmp", "webp"])
+    if is_img:
+        try:
+            img = Image.open(io.BytesIO(data))
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+            img_arr = np.array(img)
+            return safe_process_image(img_arr)
+        except Exception as e:
+            raise RuntimeError(f"Failed to process image: {e}")
+
+    # --- Unknown fallback ---
+    raise ValueError("Unsupported file type or invalid data format")
