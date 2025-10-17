@@ -191,6 +191,16 @@
   color: white;
 }
 
+.admin-user-icon {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: white;
+}
+
+.regular-user-icon {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
 .card-icon svg {
   width: 1.5rem;
   height: 1.5rem;
@@ -211,6 +221,12 @@
   padding: 0.25rem 0.625rem;
   border-radius: 0.375rem;
   display: inline-block;
+}
+
+.card-date {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  font-weight: 500;
 }
 
 .card-description {
@@ -319,6 +335,7 @@
   border-radius: 0.5rem;
   font-size: 0.75rem;
   font-weight: 600;
+  margin-right: 0.5rem;
 }
 
 .badge.mandatory {
@@ -327,8 +344,33 @@
 }
 
 .badge.optional {
-    background: #f5a1a1;
-    color:white;
+  background: #f5a1a1;
+  color: white;
+}
+
+.user-details {
+  margin-bottom: 1rem;
+}
+
+.user-status-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.admin-badge-card {
+  background: linear-gradient(to right, #fbbf24, #f59e0b);
+  color: white;
+}
+
+.active-badge {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.inactive-badge {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .card-actions {
@@ -339,8 +381,15 @@
   margin-top: auto;
 }
 
+.user-actions {
+  flex-wrap: wrap;
+}
+
 .edit-btn,
-.delete-btn {
+.delete-btn,
+.grant-admin-btn,
+.revoke-admin-btn,
+.toggle-active-btn {
   flex: 1;
   display: flex;
   align-items: center;
@@ -353,6 +402,7 @@
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .edit-btn {
@@ -375,8 +425,41 @@
   color: white;
 }
 
+.grant-admin-btn {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.grant-admin-btn:hover {
+  background: #d97706;
+  color: white;
+}
+
+.revoke-admin-btn {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.revoke-admin-btn:hover {
+  background: #dc2626;
+  color: white;
+}
+
+.toggle-active-btn {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.toggle-active-btn:hover {
+  background: #374151;
+  color: white;
+}
+
 .edit-btn svg,
-.delete-btn svg {
+.delete-btn svg,
+.grant-admin-btn svg,
+.revoke-admin-btn svg,
+.toggle-active-btn svg {
   width: 1rem;
   height: 1rem;
 }
@@ -792,6 +875,7 @@
 
   .admin-tabs {
     width: 100%;
+    flex-wrap: wrap;
   }
 
   .subject-details {
@@ -804,5 +888,16 @@
 
   .module-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .user-actions {
+    flex-direction: column;
+  }
+
+  .grant-admin-btn,
+  .revoke-admin-btn,
+  .toggle-active-btn,
+  .delete-btn {
+    width: 100%;
   }
 }

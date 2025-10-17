@@ -1,9 +1,28 @@
-import { FileText, TrendingUp, Users, Zap, LogIn, UserPlus, Search, BarChart } from "lucide-react";
+import { FileText, TrendingUp, Users, Zap, LogIn, UserPlus, Search, BarChart, Shield, LogOut, Settings } from "lucide-react";
 import "../styles/HomePage.css";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import authService from "../services/authService.ts";
 
 function HomePage() {
     const navigate = useNavigate();
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [userEmail, setUserEmail] = useState("");
+
+    useEffect(() => {
+        // Check authentication status
+        const loggedIn = authService.isAuthenticated();
+        setIsLoggedIn(loggedIn);
+
+        if (loggedIn) {
+            const userInfo = authService.getUserInfo();
+            if (userInfo) {
+                setIsAdmin(userInfo.is_admin);
+                setUserEmail(userInfo.email);
+            }
+        }
+    }, []);
 
     const handleLogin = () => {
         navigate('/auth', { state: { isLogin: true } });
@@ -11,6 +30,15 @@ function HomePage() {
 
     const handleRegister = () => {
         navigate('/auth', { state: { isLogin: false } });
+    };
+
+    const handleLogout = () => {
+        authService.logout();
+        setIsLoggedIn(false);
+        setIsAdmin(false);
+        setUserEmail("");
+        // Refresh page to update state
+        window.location.reload();
     };
 
     const scrollToFeatures = () => {
@@ -22,24 +50,45 @@ function HomePage() {
         <div className="home-container">
             <div className="home-content">
                 <header className="home-header">
-                <div className="logo-section" onClick={() => navigate('/')}>
-                    <div className="logo-icon">
-                        <FileText className="logo-svg" />
+                    <div className="logo-section" onClick={() => navigate('/')}>
+                        <div className="logo-icon">
+                            <FileText className="logo-svg" />
+                        </div>
+                        <div className="logo-text">
+                            <h1 className="logo-title">IactaQuaestio</h1>
+                        </div>
                     </div>
-                    <div className="logo-text">
-                        <h1 className="logo-title">IactaQuaestio</h1>
+                    <div className="auth-buttons">
+                        {isLoggedIn ? (
+                            <>
+                                <div className="user-info">
+                                    <span className="user-email">{userEmail}</span>
+                                    {isAdmin && <span className="admin-badge">Admin</span>}
+                                </div>
+                                {isAdmin && (
+                                    <button onClick={() => navigate('/admin')} className="admin-btn">
+                                        <Shield />
+                                        Admin Panel
+                                    </button>
+                                )}
+                                <button onClick={handleLogout} className="logout-btn">
+                                    <LogOut />
+                                    Logout
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button onClick={handleLogin} className="login-btn">
+                                    <LogIn />
+                                    Login
+                                </button>
+                                <button onClick={handleRegister} className="register-btn">
+                                    <UserPlus />
+                                    Sign Up
+                                </button>
+                            </>
+                        )}
                     </div>
-                </div>
-                <div className="auth-buttons">
-                    <button onClick={handleLogin} className="login-btn">
-                        <LogIn />
-                        Login
-                    </button>
-                    <button onClick={handleRegister} className="register-btn">
-                        <UserPlus />
-                        Sign Up
-                    </button>
-                </div>
                 </header>
 
                 <section className="hero-section">
@@ -56,14 +105,29 @@ function HomePage() {
                         Study smarter by focusing on what matters most.
                     </p>
                     <div className="hero-cta">
-                        <button onClick={handleRegister} className="cta-primary">
-                        <UserPlus />
-                        Get Started
-                    </button>
-                    <button onClick={scrollToFeatures} className="cta-secondary">
-                        <Search />
-                        Explore Features
-                    </button>
+                        {isLoggedIn ? (
+                            <>
+                                <button onClick={() => navigate("/uploadTest")} className="cta-primary">
+                                    <FileText />
+                                    Upload Test
+                                </button>
+                                <button onClick={() => navigate("/searchTests")} className="cta-secondary">
+                                    <Search />
+                                    Search Tests
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button onClick={handleRegister} className="cta-primary">
+                                    <UserPlus />
+                                    Get Started
+                                </button>
+                                <button onClick={scrollToFeatures} className="cta-secondary">
+                                    <Search />
+                                    Explore Features
+                                </button>
+                            </>
+                        )}
                     </div>
                 </section>
 
@@ -117,10 +181,17 @@ function HomePage() {
                         <p className="cta-description">
                             Join thousands of students who are studying smarter with IactaQuaestio
                         </p>
-                        <button onClick={handleRegister} className="cta-final">
-                            <UserPlus />
-                            Create Your Account
-                        </button>
+                        {isLoggedIn ? (
+                            <button onClick={() => navigate("/searchTests")} className="cta-final">
+                                <Search />
+                                Start Searching
+                            </button>
+                        ) : (
+                            <button onClick={handleRegister} className="cta-final">
+                                <UserPlus />
+                                Create Your Account
+                            </button>
+                        )}
                     </div>
                 </section>
 

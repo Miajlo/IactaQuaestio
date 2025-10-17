@@ -1,33 +1,83 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { User, Lock, Mail, LogIn, UserPlus, ArrowLeft, FileText } from "lucide-react";
+import { User, Lock, Mail, LogIn, UserPlus, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
 import "../styles/AuthForm.css";
+import authService from "../services/authService.ts";
 
 function AuthForm() {
     const location = useLocation();
     const navigate = useNavigate();
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState("");
-    const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [message, setMessage] = useState("");
+    const [isSuccess, setIsSuccess] = useState(false);
 
     useEffect(() => {
+        // Check if already logged in
+        if (authService.isAuthenticated()) {
+            navigate("/");
+        }
+
         if (location.state?.isLogin !== undefined) {
             setIsLogin(location.state.isLogin);
         }
-    }, [location.state]);
+    }, [location.state, navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
-    }
+        setMessage("");
+
+        try {
+            if (isLogin) {
+                // Login
+                await authService.login({
+                    username: email, // OAuth2 uses 'username' field
+                    password: password
+                });
+
+                setMessage("Login successful! Redirecting...");
+                setIsSuccess(true);
+
+                setTimeout(() => {
+                    navigate("/");
+                }, 1500);
+            } else {
+                // Register
+                await authService.register({
+                    email: email,
+                    password: password
+                });
+
+                setMessage("Registration successful! Please login.");
+                setIsSuccess(true);
+
+                // Switch to login mode after successful registration
+                setTimeout(() => {
+                    setIsLogin(true);
+                    setPassword("");
+                    setMessage("");
+                }, 2000);
+            }
+        } catch (error: any) {
+            console.error("Auth error:", error);
+            const errorMessage = error.response?.data?.detail || 
+                               (isLogin ? "Login failed. Please check your credentials." : "Registration failed. Email might already be registered.");
+            setMessage(errorMessage);
+            setIsSuccess(false);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const toggleMode = () => {
         setIsLogin(!isLogin);
         setEmail("");
-        setUsername("");
         setPassword("");
+        setMessage("");
+        setIsSuccess(false);
     };
 
     return (
@@ -67,33 +117,16 @@ function AuthForm() {
                     </div>
 
                     <form onSubmit={handleSubmit} className="auth-form">
-                        {!isLogin && (
-                            <div className="form-group">
-                                <label className="form-label">
-                                    <Mail />
-                                    Email Address
-                                </label>
-                                <input
-                                    type="email"
-                                    placeholder="your.email@example.com"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="form-input"
-                                    required
-                                />
-                            </div>
-                        )}
-
                         <div className="form-group">
                             <label className="form-label">
-                                <User />
-                                Username
+                                <Mail />
+                                Email Address
                             </label>
                             <input
-                                type="text"
-                                placeholder="Enter your username"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
+                                type="email"
+                                placeholder="your.email@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 className="form-input"
                                 required
                             />
@@ -137,11 +170,18 @@ function AuthForm() {
                                 </span>
                             ) : (
                                 <>
-                                {isLogin ? <LogIn className="btn-icon" /> : <UserPlus className="btn-icon" />}
-                                {isLogin ? "Sign In" : "Sign Up"}
+                                    {isLogin ? <LogIn className="btn-icon" /> : <UserPlus className="btn-icon" />}
+                                    {isLogin ? "Sign In" : "Sign Up"}
                                 </>
                             )}
                         </button>
+
+                        {message && (
+                            <div className={`message-box ${isSuccess ? 'success' : 'error'}`}>
+                                {isSuccess ? <CheckCircle /> : <AlertCircle />}
+                                <p className="message-text">{message}</p>
+                            </div>
+                        )}
                     </form>
 
                     <div className="auth-footer">

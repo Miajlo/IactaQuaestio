@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Building2, BookOpen, X, Save, Search, MapPin } from "lucide-react";
+import { Plus, Edit, Trash2, Building2, BookOpen, X, Save, Search, MapPin, Users, Shield, ShieldOff, UserX } from "lucide-react";
 import "../styles/AdminPanel.css";
 import axiosInstance from "../utils/axiosInstance.ts";
+import userService, { User } from "../services/userService.ts";
 
 interface Address {
   street_name: string;
@@ -38,12 +39,13 @@ interface Subject {
   description?: string;
 }
 
-type EntityType = 'faculty' | 'subject' | 'module';
+type EntityType = 'faculty' | 'subject' | 'module' | 'user';
 
 function AdminPanel() {
   const [activeTab, setActiveTab] = useState<EntityType>('faculty');
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -74,6 +76,9 @@ function AdminPanel() {
       } else if (activeTab === 'subject') {
         const res = await axiosInstance.get("/subjects");
         setSubjects(res.data);
+      } else if (activeTab === 'user') {
+        const usersData = await userService.getAllUsers();
+        setUsers(usersData);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -115,6 +120,8 @@ function AdminPanel() {
         await axiosInstance.delete(`/faculties/${deleteTarget.id}`);
       } else if (deleteTarget.type === 'subject') {
         await axiosInstance.delete(`/subjects/${deleteTarget.id}`);
+      } else if (deleteTarget.type === 'user') {
+        await userService.deleteUser(deleteTarget.id);
       }
       setShowDeleteModal(false);
       setDeleteTarget(null);
@@ -143,6 +150,24 @@ function AdminPanel() {
       fetchData();
     } catch (error) {
       console.error("Error saving:", error);
+    }
+  };
+
+  const handleToggleAdmin = async (userId: string, currentStatus: boolean) => {
+    try {
+      await userService.toggleAdmin(userId, !currentStatus);
+      fetchData();
+    } catch (error) {
+      console.error("Error toggling admin status:", error);
+    }
+  };
+
+  const handleToggleActive = async (userId: string, currentStatus: boolean) => {
+    try {
+      await userService.toggleActive(userId, !currentStatus);
+      fetchData();
+    } catch (error) {
+      console.error("Error toggling active status:", error);
     }
   };
 
@@ -175,11 +200,15 @@ function AdminPanel() {
     s.code.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const filteredUsers = users.filter(u =>
+    u.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="admin-container">
       <div className="admin-header">
         <h1 className="admin-title">Admin Panel</h1>
-        <p className="admin-subtitle">Manage faculties, subjects, and modules</p>
+        <p className="admin-subtitle">Manage faculties, subjects, modules, and users</p>
       </div>
 
       <div className="admin-content">
@@ -199,6 +228,13 @@ function AdminPanel() {
               <BookOpen />
               Subjects
             </button>
+            <button
+              onClick={() => setActiveTab('user')}
+              className={`admin-tab ${activeTab === 'user' ? 'active' : ''}`}
+            >
+              <Users />
+              Users
+            </button>
           </div>
 
           <div className="admin-actions">
@@ -211,10 +247,12 @@ function AdminPanel() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button onClick={handleCreate} className="add-btn">
-              <Plus />
-              Add New
-            </button>
+            {activeTab !== 'user' && (
+              <button onClick={handleCreate} className="add-btn">
+                <Plus />
+                Add New
+              </button>
+            )}
           </div>
         </div>
 
@@ -307,6 +345,59 @@ function AdminPanel() {
                   <Edit />
                 </button>
                 <button onClick={() => handleDeleteClick(subject._id!, subject.name, 'subject')} className="delete-btn">
+                  <Trash2 />
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {activeTab === 'user' && filteredUsers.map((user) => (
+            <div key={user.id} className="admin-card user-card">
+              <div className="card-header">
+                <div className={`card-icon ${user.is_admin ? 'admin-user-icon' : 'regular-user-icon'}`}>
+                  {user.is_admin ? <Shield /> : <Users />}
+                </div>
+                <div className="card-info">
+                  <h3>{user.email}</h3>
+                  <span className="card-date">Joined: {new Date(user.created_at).toLocaleDateString()}</span>
+                </div>
+              </div>
+              
+              <div className="user-details">
+                <div className="user-status-badges">
+                  {user.is_admin && (
+                    <span className="badge admin-badge-card">Admin</span>
+                  )}
+                  {user.is_active ? (
+                    <span className="badge active-badge">Active</span>
+                  ) : (
+                    <span className="badge inactive-badge">Inactive</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="card-actions user-actions">
+                <button 
+                  onClick={() => handleToggleAdmin(user.id, user.is_admin)} 
+                  className={user.is_admin ? "revoke-admin-btn" : "grant-admin-btn"}
+                  title={user.is_admin ? "Revoke admin privileges" : "Grant admin privileges"}
+                >
+                  {user.is_admin ? <ShieldOff /> : <Shield />}
+                  {user.is_admin ? "Revoke Admin" : "Make Admin"}
+                </button>
+                <button 
+                  onClick={() => handleToggleActive(user.id, user.is_active)} 
+                  className="toggle-active-btn"
+                  title={user.is_active ? "Deactivate user" : "Activate user"}
+                >
+                  <UserX />
+                  {user.is_active ? "Deactivate" : "Activate"}
+                </button>
+                <button 
+                  onClick={() => handleDeleteClick(user.id, user.email, 'user')} 
+                  className="delete-btn"
+                  title="Delete user"
+                >
                   <Trash2 />
                 </button>
               </div>
@@ -574,7 +665,7 @@ function AdminPanel() {
         <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
           <div className="modal-content delete-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Delete {deleteTarget.type === 'faculty' ? 'Faculty' : 'Subject'}</h2>
+              <h2>Delete {deleteTarget.type === 'faculty' ? 'Faculty' : deleteTarget.type === 'subject' ? 'Subject' : 'User'}</h2>
               <button onClick={() => setShowDeleteModal(false)} className="modal-close">
                 <X />
               </button>
