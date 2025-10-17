@@ -31,7 +31,7 @@ function UploadTestForm() {
     formData.append("exam_period", examPeriod);
     formData.append("academic_year", academicYear);
     formData.append("test_type", testType);
-    formData.append("image", file);
+    formData.append("file", file);
 
     try {
 
