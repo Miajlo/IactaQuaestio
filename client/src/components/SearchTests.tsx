@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Search, ChevronRight, FileText, Calendar, BookOpen, Filter, X } from "lucide-react";
+import { Search, ChevronRight, FileText, Calendar, BookOpen, Filter, X, ArrowLeft } from "lucide-react";
 import "../styles/SearchTests.css";
 import axiosInstance from "../utils/axiosInstance.ts";
+import { useNavigate } from "react-router-dom";
 
 interface Faculty {
   _id: string;
@@ -58,34 +59,47 @@ function SearchTests() {
   
   const [isLoading, setIsLoading] = useState(false);
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     fetchFaculties();
   }, []);
 
-  const formatTestText = (text: string) => {
+ const formatTestText = (text: string) => {
     if (!text) return [];
 
-    const lines = text.split('\n').map(line => line.trim()).filter(line => line !== '');
+    let firstQuestionMatch = text.match(/\n\s*1\.\s*\(/);
+    let startIndex = 0;
+    let hasParenthesis = true;
 
-    const questions: string[] = [];
-    let currentQuestion = '';
-
-    for (const line of lines) {
-      if (/^\d+\.\s+/.test(line)) {
-        if (currentQuestion) {
-          questions.push(currentQuestion.trim());
-        }
-        currentQuestion = line.replace(/^\d+\.\s+/, '');
-      } else {
-        if (currentQuestion || questions.length > 0) {
-          currentQuestion += ' ' + line;
-        }
+    if (firstQuestionMatch) {
+      startIndex = text.indexOf(firstQuestionMatch[0]);
+    } else {
+      firstQuestionMatch = text.match(/^\s*1\.\s+/m);
+      if (!firstQuestionMatch) {
+        return []; 
       }
+      startIndex = text.indexOf(firstQuestionMatch[0]);
+      hasParenthesis = false;
     }
+
+    const cleanedText = text.substring(startIndex).trim();
     
-    if (currentQuestion) {
-      questions.push(currentQuestion.trim());
-    }
+    const questionParts = hasParenthesis
+      ? cleanedText.split(/\n\s*(?=\d+\.\s*\()/).filter(part => part.trim())
+      : cleanedText.split(/\n\s*(?=\d+\.\s+)/).filter(part => part.trim());
+
+    const questions = questionParts.map(q => {
+      const withoutNumber = q.replace(/^\d+\.\s*/, '');
+      
+      return withoutNumber
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line !== '')
+        .join(' ')
+        .trim();
+    });
+
     return questions;
   };
 
@@ -224,6 +238,10 @@ function SearchTests() {
 
   return (
     <div className="search-container">
+      <button className="back-to-home-btn" onClick={() => navigate("/")}>
+          <ArrowLeft />
+          Back to home
+      </button>
       <div className="search-header">
         <h1 className="search-title">Search Tests</h1>
         <p className="search-subtitle">Find exam questions and past tests</p>

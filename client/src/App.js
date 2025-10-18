@@ -2,7 +2,7 @@ import './App.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomePage from "./components/HomePage.tsx";
 import AuthForm from "./components/AuthForm.tsx";
-import UploadTest from "./components/UploadTest.tsx";
+import UploadTest from "./components/uploadTest.tsx";
 import AdminPanel from "./components/AdminPanel.tsx";
 import SearchTests from "./components/SearchTests.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
