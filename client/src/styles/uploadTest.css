@@ -102,7 +102,7 @@
 }
 
 .form-select,
-.form-input {
+.form-input-upload {
   width: 100%;
   padding: 0.875rem 1rem;
   border-radius: 0.625rem;
@@ -115,7 +115,7 @@
 }
 
 .form-select:focus,
-.form-input:focus {
+.form-input-upload:focus {
   border-color: #4f46e5;
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }

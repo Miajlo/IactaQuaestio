@@ -281,7 +281,7 @@ function UploadTestForm() {
                     placeholder="e.g., Januarski 2024"
                     value={examPeriod}
                     onChange={(e) => setExamPeriod(e.target.value)}
-                    className="form-input"
+                    className="form-input-upload"
                     required
                   />
                 </div>
@@ -296,7 +296,7 @@ function UploadTestForm() {
                     placeholder="e.g., 2023/2024"
                     value={academicYear}
                     onChange={(e) => setAcademicYear(e.target.value)}
-                    className="form-input"
+                    className="form-input-upload"
                     required
                   />
                 </div>

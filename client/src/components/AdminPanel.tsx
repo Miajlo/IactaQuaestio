@@ -436,7 +436,7 @@ function AdminPanel() {
               {activeTab === 'faculty' ? (
                 <>
                   <div className="form-row">
-                    <div className="form-group">
+                    <div className="form-group-admin">
                       <label>Name</label>
                       <input
                         type="text"
@@ -445,7 +445,7 @@ function AdminPanel() {
                         placeholder="Faculty name"
                       />
                     </div>
-                    <div className="form-group">
+                    <div className="form-group-admin">
                       <label>Code</label>
                       <input
                         type="text"
@@ -456,7 +456,7 @@ function AdminPanel() {
                     </div>
                   </div>
 
-                  <div className="form-group">
+                  <div className="form-group-admin">
                     <label>Description</label>
                     <textarea
                       value={facultyForm.description}
@@ -465,7 +465,7 @@ function AdminPanel() {
                     />
                   </div>
                   
-                  <div className="form-group">
+                  <div className="form-group-admin">
                     <label className="section-label">Address</label>
                     <div className="form-row">
                       <input
@@ -497,7 +497,7 @@ function AdminPanel() {
                     </div>
                   </div>
 
-                  <div className="form-group">
+                  <div className="form-group-admin">
                     <label className="section-label">Modules</label>
                     <div className="modules-list">
                       {facultyForm.modules.length > 0 ? (
@@ -555,7 +555,7 @@ function AdminPanel() {
               ) : (
                 <>
                   <div className="form-row">
-                    <div className="form-group">
+                    <div className="form-group-admin">
                       <label>Code</label>
                       <input
                         type="text"
@@ -564,7 +564,7 @@ function AdminPanel() {
                         placeholder="Subject code"
                       />
                     </div>
-                    <div className="form-group">
+                    <div className="form-group-admin">
                       <label>Name</label>
                       <input
                         type="text"
@@ -575,7 +575,7 @@ function AdminPanel() {
                     </div>
                   </div>
                   <div className="form-row">
-                    <div className="form-group">
+                    <div className="form-group-admin">
                       <label>Faculty Code</label>
                       <input
                         type="text"
@@ -584,7 +584,7 @@ function AdminPanel() {
                         placeholder="Faculty code"
                       />
                     </div>
-                    <div className="form-group">
+                    <div className="form-group-admin">
                       <label>Module Code</label>
                       <input
                         type="text"
@@ -595,7 +595,7 @@ function AdminPanel() {
                     </div>
                   </div>
                   <div className="form-row">
-                    <div className="form-group">
+                    <div className="form-group-admin">
                       <label>Year</label>
                       <input
                         type="text"
@@ -609,7 +609,7 @@ function AdminPanel() {
                         placeholder="Enter year"
                       />
                     </div>
-                    <div className="form-group">
+                    <div className="form-group-admin">
                       <label>Semester</label>
                       <input
                         type="text"
@@ -623,7 +623,7 @@ function AdminPanel() {
                         placeholder="Enter semester"
                       />
                     </div>
-                    <div className="form-group">
+                    <div className="form-group-admin">
                       <label>ECTS</label>
                       <input
                         type="text"
@@ -641,7 +641,7 @@ function AdminPanel() {
                       />
                     </div>
                   </div>
-                  <div className="form-group">
+                  <div className="form-group-admin">
                     <label>Description</label>
                     <textarea
                       value={subjectForm.description || ""}
@@ -649,7 +649,7 @@ function AdminPanel() {
                       placeholder="Subject description (optional)"
                     />
                   </div>
-                  <div className="form-group checkbox-group">
+                  <div className="form-group-admin checkbox-group">
                     <label className="checkbox-label">
                       <span className="checkbox-text">Mandatory Subject</span>
                       <input
