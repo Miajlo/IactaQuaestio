@@ -63,8 +63,19 @@ function AuthForm() {
             }
         } catch (error: any) {
             console.error("Auth error:", error);
-            const errorMessage = error.response?.data?.detail || 
-                               (isLogin ? "Login failed. Please check your credentials." : "Registration failed. Email might already be registered.");
+            let errorMessage;
+            const detail = error.response?.data?.detail;
+
+            if (typeof detail === 'string') 
+                errorMessage = detail;
+            else if (detail && typeof detail === 'object')
+                errorMessage = JSON.stringify(detail);
+            else {
+                errorMessage = isLogin ?
+                               "Login failed. Please check your credentials." : 
+                               "Registration failed. Email might already be registered.";
+            }
+
             setMessage(errorMessage);
             setIsSuccess(false);
         } finally {

@@ -8,7 +8,6 @@ from typing import List, Optional
 
 subject_router = APIRouter()
 
-
 @subject_router.post("/", response_model=Subject, status_code=status.HTTP_201_CREATED)
 async def create_subject(subject: Subject):
     """Create a new subject"""

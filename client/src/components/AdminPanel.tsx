@@ -70,6 +70,14 @@ function AdminPanel() {
     fetchData();
   }, [activeTab]);
 
+  useEffect(() => {
+    if (showModal && activeTab === 'subject' && faculties.length === 0) {
+      axiosInstance.get("/faculties")
+        .then(res => setFaculties(res.data))
+        .catch(err => console.error("Error fetching faculties:", err));
+    }
+  }, [showModal, activeTab]);
+
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -216,6 +224,9 @@ function AdminPanel() {
     u.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const selectedFaculty = faculties.find(f => f.code === subjectForm.faculty_code);
+  const availableModules = selectedFaculty?.modules || [];
+
   return (
     <div className="admin-container">
       <div className="admin-header">
@@ -353,7 +364,7 @@ function AdminPanel() {
                 {subject.mandatory ? (
                     <span className="badge mandatory">Mandatory</span>
                 ) : (
-                    <span className="badge optional">Not Mandatory</span>
+                    <span className="badge optional">Elective</span>
                 )}
               </div>
               <div className="card-actions">

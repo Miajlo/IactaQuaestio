@@ -422,7 +422,7 @@ function SearchTests() {
                   {subject.mandatory ? (
                     <span className="mandatory-badge">Mandatory</span>
                   ) : (
-                    <span className="mandatory-badge badge optional">Not Mandatory</span>
+                    <span className="mandatory-badge badge optional">Elective</span>
                   )}
                 </div>
               ))}
@@ -467,6 +467,13 @@ function SearchTests() {
                           <Calendar size={14} />
                           {test.academic_year} • {test.test_type}
                         </p>
+                        <button className={`view-full-btn ${isExpanded ? 'expanded' : ''}`}
+                          onClick={() => {
+
+                            //todo toggle original file
+
+                          }
+                        }>See original</button> 
                       </div>
                     </div>
                     <div className="test-content">
