@@ -3,6 +3,8 @@ from fastapi import APIRouter, HTTPException, status, Body, Form, File, UploadFi
 from app.models.test import Test
 from app.models.testuser import TestUser
 from typing import List, Optional
+from bson import Binary
+from pydantic import BaseModel
 
 from processing.text_extraction import extract_text_structured, get_text_from_bytes, process_image_from_array, safe_process_image, \
     extract_questions_with_groups
@@ -13,7 +15,32 @@ test_router = APIRouter()
 from fastapi import UploadFile, File, Form, HTTPException, status
 import asyncio
 
-@test_router.post("/", response_model=Test, status_code=status.HTTP_201_CREATED)
+# Response model that excludes binary data to avoid UTF-8 serialization errors
+class TestResponse(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: Optional[str] = None
+    subject_code: str
+    exam_period: str
+    academic_year: str
+    test_type: str
+    full_text: str
+    file_extension: Optional[str] = None
+
+    @staticmethod
+    def from_test(test: Test):
+        """Convert Test document to TestResponse, handling ObjectId conversion"""
+        return TestResponse(
+            id=str(test.id) if test.id else None,
+            subject_code=test.subject_code,
+            exam_period=test.exam_period,
+            academic_year=test.academic_year,
+            test_type=test.test_type,
+            full_text=test.full_text,
+            file_extension=test.file_extension
+        )
+
+@test_router.post("/", response_model=TestResponse, status_code=status.HTTP_201_CREATED)
 async def create_test_from_file(
     subject_code: str = Form(..., description="Subject code e.g. CS302"),
     exam_period: str = Form(..., description="Exam period e.g. 'Januarski 2024'"),
@@ -24,7 +51,6 @@ async def create_test_from_file(
     """
     Create a new test by extracting text from an uploaded image or PDF.
     """
-
     # Validate file extension
     allowed_extensions = ["jpg", "jpeg", "png", "pdf", "tiff", "bmp"]
     file_extension = file.filename.split(".")[-1].lower()
@@ -43,7 +69,7 @@ async def create_test_from_file(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Failed to read file: {str(e)}"
         )
-
+    
     # Extract text using our new function in a background thread
     try:
         extracted_text = await asyncio.to_thread(get_text_from_bytes, file_content, file.filename)
@@ -65,21 +91,30 @@ async def create_test_from_file(
         exam_period=exam_period,
         academic_year=academic_year,
         test_type=test_type.lower(),
-        full_text=extract_questions_with_groups(extracted_text)
+        full_text=extract_questions_with_groups(extracted_text),
+        full_file=Binary(file_content),  # Wrap in Binary to store raw bytes without encoding
+        file_extension=file_extension
     )
-
     # Save to database
     try:
         await test.insert()
-        return test
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to save test: {str(e)}"
+            detail=f"Failed to save test to database: {str(e)}"
+        )
+
+    # Convert to response
+    try:
+        return TestResponse.from_test(test)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to convert test to response: {str(e)}"
         )
 
 
-@test_router.get("/find", response_model=List[Test])
+@test_router.get("/find", response_model=List[TestResponse])
 async def search_tests(
         subject_code: Optional[str] = Query(None, description="Exact match: subject code"),
         academic_year: Optional[str] = Query(None, description="Exact match: academic year"),
@@ -122,7 +157,9 @@ async def search_tests(
             # Regular query with exact matches only
             tests = await Test.find(query_filters).sort("-created_at").skip(skip).limit(limit).to_list()
 
-        return tests
+        print(query_filters)
+
+        return [TestResponse.from_test(test) for test in tests]
 
     except Exception as e:
         raise HTTPException(
@@ -130,7 +167,7 @@ async def search_tests(
             detail=f"Search failed: {str(e)}"
         )
 
-@test_router.get("/all", response_model=List[Test])
+@test_router.get("/all", response_model=List[TestResponse])
 async def get_all_tests(
     limit: int = Query(100, ge=1, le=500, description="Maximum number of tests to return"),
     skip: int = Query(0, ge=0, description="Number of tests to skip for pagination")
@@ -141,7 +178,7 @@ async def get_all_tests(
     """
     try:
         tests = await Test.find_all().sort("-created_at").skip(skip).limit(limit).to_list()
-        return tests
+        return [TestResponse.from_test(test) for test in tests]
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
