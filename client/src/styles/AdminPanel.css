@@ -191,6 +191,28 @@
   height: 100%;
 }
 
+.admin-card,
+.admin-card-test{
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  padding: 1.5rem;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s;
+  position: relative;
+  display: flex;
+  height: 100%;
+}
+
+.admin-card{
+  flex-direction: column;
+}
+
+.admin-card-test {
+  flex-direction: row;
+}
+
 .admin-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
@@ -419,6 +441,7 @@
 
 .edit-btn,
 .delete-btn,
+.tests-btn,
 .grant-admin-btn,
 .revoke-admin-btn,
 .toggle-active-btn {
@@ -451,6 +474,17 @@
   background: #fef2f2;
   color: #dc2626;
 }
+
+.tests-btn{
+  background: #fef2f2;
+  color: #4ef231;
+}
+
+.tests-btn:hover{
+  background: #4ef231;
+  color: #fef2f2;
+}
+
 
 .delete-btn:hover {
   background: #dc2626;
@@ -506,6 +540,10 @@
   justify-content: center;
   z-index: 1000;
   padding: 1rem;
+}
+
+.modal-overlay.delete-modal-overlay {
+  z-index: 1100;
 }
 
 .modal-content {

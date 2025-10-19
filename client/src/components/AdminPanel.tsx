@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Building2, BookOpen, X, Save, Search, MapPin, Users, Shield, ShieldOff, UserX, ArrowLeft } from "lucide-react";
+import { Plus, Edit, Trash2, Building2, BookOpen, X, Save, Search, MapPin, Users, Shield, ShieldOff, UserX, ArrowLeft, PenBox, Pen, List } from "lucide-react";
 import "../styles/AdminPanel.css";
 import axiosInstance from "../utils/axiosInstance.ts";
 import userService, { User } from "../services/userService.ts";
@@ -40,19 +40,30 @@ interface Subject {
   description?: string;
 }
 
-type EntityType = 'faculty' | 'subject' | 'module' | 'user';
+interface Test{
+  id?: string;
+  exam_period: string,
+  academic_year: string,
+  test_type: string,
+  subject_code: string
+}
+
+type EntityType = 'faculty' | 'subject' | 'module' | 'user' | 'test';
 
 function AdminPanel() {
   const [activeTab, setActiveTab] = useState<EntityType>('faculty');
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [tests, setTests] = useState<Test[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [showTests, setShowTests] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{id: string, name: string, type: EntityType} | null>(null);
+
 
   const navigate = useNavigate();
 
@@ -65,6 +76,11 @@ function AdminPanel() {
   const [moduleForm, setModuleForm] = useState<Module>({
     name: "", code: "", description: ""
   });
+  const [testForm, setTestForm] = useState<Test>({
+    exam_period: "", academic_year: "", test_type: "", subject_code: ""
+  });
+  const [showTestModal, setShowTestModal] = useState(false);
+  const [editingTest, setEditingTest] = useState<Test | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -87,6 +103,8 @@ function AdminPanel() {
       } else if (activeTab === 'subject') {
         const res = await axiosInstance.get("/subjects");
         setSubjects(res.data);
+        const tests = await axiosInstance.get("/tests/all");
+        setTests(tests.data);
       } else if (activeTab === 'user') {
         const usersData = await userService.getAllUsers();
         setUsers(usersData);
@@ -110,13 +128,21 @@ function AdminPanel() {
   };
 
   const handleEdit = (item: any) => {
-    setEditingItem(item);
     if (activeTab === 'faculty') {
+      setEditingItem(item);
       setFacultyForm(item);
-    } else if (activeTab === 'subject') {
+      setShowModal(true);
+    } else if (activeTab === 'subject' && !showTests) {
+      setEditingItem(item);
       setSubjectForm(item);
+      setShowModal(true);
     }
-    setShowModal(true);
+    else if (activeTab === 'subject' && showTests) {
+      // Keep editingItem as the subject, set editingTest separately
+      setEditingTest(item);
+      setTestForm(item);
+      setShowTestModal(true);
+    }
   };
 
   const handleDeleteClick = (id: string, name: string, type: EntityType) => {
@@ -124,19 +150,39 @@ function AdminPanel() {
     setShowDeleteModal(true);
   };
 
+  const handleListTests = (item:any) => {
+    setEditingItem(item);
+    setShowTests(true);
+  }
+
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     try {
       if (deleteTarget.type === 'faculty') {
         await axiosInstance.delete(`/faculties/${deleteTarget.id}`);
+        fetchData();
       } else if (deleteTarget.type === 'subject') {
         await axiosInstance.delete(`/subjects/${deleteTarget.id}`);
+        fetchData();
       } else if (deleteTarget.type === 'user') {
         await userService.deleteUser(deleteTarget.id);
+        fetchData();
+      }
+      else if(deleteTarget.type === 'test'){
+        // Remove the test from the local state immediately
+        console.log('Deleting test with ID:', deleteTarget.id);
+        console.log('Current tests:', tests);
+        setTests(tests => {
+          const filtered = tests.filter(t => t.id !== deleteTarget.id);
+          console.log('Filtered tests:', filtered);
+          return filtered;
+        });
+
+        // Database call - commented out as endpoint not implemented yet
+        // await axiosInstance.delete(`/tests/${deleteTarget.id}`);
       }
       setShowDeleteModal(false);
       setDeleteTarget(null);
-      fetchData();
     } catch (error: any) {
       if(error.response?.data?.detail === "You cannot delete your own account") {
         alert("You cannot delete your own account");
@@ -164,6 +210,29 @@ function AdminPanel() {
       fetchData();
     } catch (error) {
       console.error("Error saving:", error);
+    }
+  };
+
+  const handleTestSubmit = async () => {
+    try {
+      if (editingTest && editingTest.id) {
+        // Update the local tests state immediately with the edited data
+        const updatedTest = { ...testForm, id: editingTest.id };
+        console.log(updatedTest);
+        setTests(tests.map(t => t.id === editingTest.id ? updatedTest : t));
+
+        // Try to update in the database (endpoint may not exist yet)
+        try {
+          await axiosInstance.put(`/tests/${editingTest.id}`, testForm);
+        } catch (dbError) {
+          console.warn("Database update failed (endpoint may not exist yet):", dbError);
+        }
+      }
+      setShowTestModal(false);
+      setEditingTest(null);
+      // Keep showTests true and editingItem (the subject) to display the tests panel again
+    } catch (error) {
+      console.error("Error saving test:", error);
     }
   };
 
@@ -374,9 +443,17 @@ function AdminPanel() {
                 <button onClick={() => handleDeleteClick(subject._id!, subject.name, 'subject')} className="delete-btn">
                   <Trash2 />
                 </button>
+                <button onClick={() => handleListTests(subject)} className="tests-btn">
+                  <List />
+                </button>
               </div>
             </div>
           ))}
+
+
+          {showTests && showModal && (
+            <h1>Hi</h1>
+          )}
 
           {activeTab === 'user' && filteredUsers.map((user) => (
             <div key={user.id} className="admin-card user-card">
@@ -689,10 +766,10 @@ function AdminPanel() {
       )}
 
       {showDeleteModal && deleteTarget && (
-        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+        <div className="modal-overlay delete-modal-overlay" onClick={() => setShowDeleteModal(false)}>
           <div className="modal-content delete-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Delete {deleteTarget.type === 'faculty' ? 'Faculty' : deleteTarget.type === 'subject' ? 'Subject' : 'User'}</h2>
+              <h2>Delete {deleteTarget.type === 'faculty' ? 'Faculty' : deleteTarget.type === 'subject' ? 'Subject' : deleteTarget.type === 'test' ? 'Test' : 'User'}</h2>
               <button onClick={() => setShowDeleteModal(false)} className="modal-close">
                 <X />
               </button>
@@ -714,6 +791,105 @@ function AdminPanel() {
           </div>
         </div>
       )}
+      {showTests && editingItem && (
+        <div className="modal-overlay" onClick={() => setShowTests(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2><strong><i>{editingItem.name}</i></strong> tests</h2>
+              <button onClick={() => setShowTests(false)} className="modal-close">
+                <X />
+              </button>
+            </div>
+            <div className="modal-body">
+              <ul className={`test-questions`}>
+                {tests.map((t, index) => {
+                  if(t.subject_code === editingItem.code)
+                    return (
+                    <li key={t.id || index}>
+                      <div className="admin-card-test">
+                        {t.exam_period + "; " + t.academic_year + "; " + t.test_type}
+                        <div className="card-actions">
+                        <button onClick={() => handleEdit(t)} className="edit-btn">
+                          <Edit />
+                        </button>
+                        <button onClick={() => {
+                          console.log('Delete button clicked for test:', t);
+                          console.log('Test id:', t.id);
+                          if (!t.id) {
+                            console.error('Test has no id!', t);
+                            alert('Error: Test has no ID');
+                            return;
+                          }
+                          handleDeleteClick(t.id, `${t.exam_period} ${t.academic_year} ${t.test_type}`, 'test');
+                        }} className="delete-btn">
+                          <Trash2 />
+                        </button>
+                        </div>
+                      </div>
+                    </li>)
+                  else
+                    return null; })}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTestModal && (
+        <div className="modal-overlay" onClick={() => setShowTestModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Edit Test</h2>
+              <button onClick={() => setShowTestModal(false)} className="modal-close">
+                <X />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="form-group-admin">
+                <label>Exam Period</label>
+                <input
+                  type="text"
+                  value={testForm.exam_period}
+                  onChange={(e) => setTestForm({...testForm, exam_period: e.target.value})}
+                  placeholder="e.g., Jan-Feb, Jun-Jul"
+                />
+              </div>
+
+              <div className="form-group-admin">
+                <label>Academic Year</label>
+                <input
+                  type="text"
+                  value={testForm.academic_year}
+                  onChange={(e) => setTestForm({...testForm, academic_year: e.target.value})}
+                  placeholder="e.g., 2023/2024"
+                />
+              </div>
+
+              <div className="form-group-admin">
+                <label>Test Type</label>
+                <input
+                  type="text"
+                  value={testForm.test_type}
+                  onChange={(e) => setTestForm({...testForm, test_type: e.target.value})}
+                  placeholder="e.g., Midterm, Final, Quiz"
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button onClick={() => setShowTestModal(false)} className="cancel-btn">
+                Cancel
+              </button>
+              <button onClick={handleTestSubmit} className="save-btn">
+                <Save />
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
