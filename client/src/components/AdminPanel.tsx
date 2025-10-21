@@ -790,41 +790,45 @@ function AdminPanel() {
             </div>
             <div className="modal-body">
               <div className="test-questions">
-                {tests.map((t, index) => {
-                  if (t.subject_code === editingItem.code)
-                    return (
-                      <div key={t.id || index} className="admin-card-test">
-                        <div className="test-info">
-                        <div><span className="label">Exam period:</span> <span className="value">{t.exam_period}</span></div>
-                        <div><span className="label">Academic year:</span> <span className="value">{t.academic_year}</span></div>
-                        <div><span className="label">Type:</span> <span className="value">{t.test_type}</span></div>
-                      </div>
-                        <div className="card-actions">
-                          <button onClick={() => handleEdit(t)} className="edit-btn">
-                            <Edit />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (!t.id) {
-                                console.error("Test has no id!", t);
-                                alert("Error: Test has no ID");
-                                return;
-                              }
-                              handleDeleteClick(
-                                t.id,
-                                `${t.exam_period} ${t.academic_year} ${t.test_type}`,
-                                "test"
-                              );
-                            }}
-                            className="delete-btn"
-                          >
-                            <Trash2 />
-                          </button>
+                {tests.filter(t => t.subject_code === editingItem.code).length === 0 ? (
+                  <p className="no-modules">No tests found for this subject</p>
+                ) : (
+                  tests.map((t, index) => {
+                    if (t.subject_code === editingItem.code)
+                      return (
+                        <div key={t.id || index} className="admin-card-test">
+                          <div className="test-info">
+                          <div><span className="label">Exam period:</span> <span className="value">{t.exam_period}</span></div>
+                          <div><span className="label">Academic year:</span> <span className="value">{t.academic_year}</span></div>
+                          <div><span className="label">Type:</span> <span className="value">{t.test_type}</span></div>
                         </div>
-                      </div>
-                    );
-                  else return null;
-                })}
+                          <div className="card-actions">
+                            <button onClick={() => handleEdit(t)} className="edit-btn">
+                              <Edit />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (!t.id) {
+                                  console.error("Test has no id!", t);
+                                  alert("Error: Test has no ID");
+                                  return;
+                                }
+                                handleDeleteClick(
+                                  t.id,
+                                  `${t.exam_period} ${t.academic_year} ${t.test_type}`,
+                                  "test"
+                                );
+                              }}
+                              className="delete-btn"
+                            >
+                              <Trash2 />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    else return null;
+                  })
+                )}
               </div>
 
             </div>
