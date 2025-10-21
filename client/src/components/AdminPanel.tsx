@@ -169,11 +169,8 @@ function AdminPanel() {
         fetchData();
       }
       else if(deleteTarget.type === 'test'){
-        console.log('Deleting test with ID:', deleteTarget.id);
-        console.log('Current tests:', tests);
         setTests(tests => {
           const filtered = tests.filter(t => t.id !== deleteTarget.id);
-          console.log('Filtered tests:', filtered);
           return filtered;
         });
 
@@ -214,23 +211,16 @@ function AdminPanel() {
   const handleTestSubmit = async () => {
     try {
       if (editingTest && editingTest.id) {
-        // Update the local tests state immediately with the edited data
-        const updatedTest = { ...testForm, id: editingTest.id };
-        console.log(updatedTest);
-        setTests(tests.map(t => t.id === editingTest.id ? updatedTest : t));
+        await axiosInstance.put(`/tests/${editingTest.id}`, testForm);
 
-        // Try to update in the database (endpoint may not exist yet)
-        try {
-          await axiosInstance.put(`/tests/${editingTest.id}`, testForm);
-        } catch (dbError) {
-          console.warn("Database update failed (endpoint may not exist yet):", dbError);
-        }
+        const updatedTest = { ...testForm, id: editingTest.id };
+        setTests(tests.map(t => t.id === editingTest.id ? updatedTest : t));
       }
       setShowTestModal(false);
       setEditingTest(null);
-      // Keep showTests true and editingItem (the subject) to display the tests panel again
     } catch (error) {
       console.error("Error saving test:", error);
+      alert("Failed to update test. Please try again.");
     }
   };
 
@@ -815,8 +805,6 @@ function AdminPanel() {
                           </button>
                           <button
                             onClick={() => {
-                              console.log("Delete button clicked for test:", t);
-                              console.log("Test id:", t.id);
                               if (!t.id) {
                                 console.error("Test has no id!", t);
                                 alert("Error: Test has no ID");

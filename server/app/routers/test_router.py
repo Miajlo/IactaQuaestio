@@ -157,7 +157,6 @@ async def search_tests(
             # Regular query with exact matches only
             tests = await Test.find(query_filters).sort("-created_at").skip(skip).limit(limit).to_list()
 
-        print(query_filters)
 
         return [TestResponse.from_test(test) for test in tests]
 
@@ -346,6 +345,53 @@ async def analyze_question_frequency(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Analysis failed: {str(e)}"
         )
+
+class TestUpdateRequest(BaseModel):
+    exam_period: Optional[str] = None
+    academic_year: Optional[str] = None
+    test_type: Optional[str] = None
+
+
+@test_router.put("/{test_id}", response_model=TestResponse)
+async def update_test(test_id: str, update_data: TestUpdateRequest):
+    try:
+        try:
+            obj_id = ObjectId(test_id)
+        except (InvalidId, Exception):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid test ID format: {test_id}"
+            )
+
+        test = await Test.get(obj_id)
+
+        if not test:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Test with ID {test_id} not found"
+            )
+
+        if update_data.exam_period is not None:
+            test.exam_period = update_data.exam_period
+
+        if update_data.academic_year is not None:
+            test.academic_year = update_data.academic_year
+
+        if update_data.test_type is not None:
+            test.test_type = update_data.test_type.lower()
+
+        await test.save()
+
+        return TestResponse.from_test(test)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update test: {str(e)}"
+        )
+
 
 @test_router.delete("/{test_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_test(test_id: str):
