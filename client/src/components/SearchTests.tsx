@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, ChevronRight, FileText, Calendar, BookOpen, Filter, X, ArrowLeft } from "lucide-react";
+import { Search, ChevronRight, FileText, Calendar, BookOpen, Filter, X, ArrowLeft, BarChart2, TrendingUp } from "lucide-react";
 import "../styles/SearchTests.css";
 import axiosInstance from "../utils/axiosInstance.ts";
 import { useNavigate } from "react-router-dom";
@@ -38,6 +38,21 @@ interface Test {
   full_text: string;
 }
 
+interface QuestionFrequency {
+  question: string;
+  count: number;
+  test_ids: string[];
+  exam_periods: string[];
+}
+
+interface QuestionAnalysis {
+  subject_code: string;
+  total_tests: number;
+  total_questions: number;
+  unique_questions: number;
+  questions: QuestionFrequency[];
+}
+
 function SearchTests() {
   const [step, setStep] = useState(1);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
@@ -56,6 +71,10 @@ function SearchTests() {
   const [testTextSearch, setTestTextSearch] = useState("");
   const [expandedTests, setExpandedTests] = useState<Record<string, boolean>>({});
 
+  // NEW: Frequency analysis state
+  const [showFrequencyView, setShowFrequencyView] = useState(false);
+  const [frequencyData, setFrequencyData] = useState<QuestionAnalysis | null>(null);
+  const [isLoadingFrequency, setIsLoadingFrequency] = useState(false);
   
   const [isLoading, setIsLoading] = useState(false);
 
@@ -65,7 +84,7 @@ function SearchTests() {
     fetchFaculties();
   }, []);
 
- const formatTestText = (text: string) => {
+  const formatTestText = (text: string) => {
     if (!text) return [];
 
     let firstQuestionMatch = text.match(/\n\s*1\.\s*\(/);
@@ -170,6 +189,7 @@ function SearchTests() {
   const handleSelectSubject = async (subject: Subject) => {
     setSelectedSubject(subject);
     setStep(4);
+    setShowFrequencyView(false); // Reset frequency view
     
     setIsLoading(true);
     try {
@@ -186,7 +206,22 @@ function SearchTests() {
     setIsLoading(false);
   };
 
-   const handleTestSearch = async () => {
+  // NEW: Fetch frequency analysis
+  const handleAnalyzeFrequency = async () => {
+    if (!selectedSubject) return;
+    
+    setIsLoadingFrequency(true);
+    try {
+      const res = await axiosInstance.get(`/tests/analyze/${selectedSubject.code}`);
+      setFrequencyData(res.data);
+      setShowFrequencyView(true);
+    } catch (error) {
+      console.error("Error analyzing frequency:", error);
+    }
+    setIsLoadingFrequency(false);
+  };
+
+  const handleTestSearch = async () => {
     if (!selectedSubject) return;
 
     const query = testTextSearch.trim().toLowerCase();
@@ -219,6 +254,8 @@ function SearchTests() {
     setTestTextSearch("");
     setTests([]);
     setSubjects([]);
+    setShowFrequencyView(false);
+    setFrequencyData(null);
   };
 
   const filteredFaculties = faculties.filter(f =>
@@ -434,77 +471,159 @@ function SearchTests() {
           <div className="step-section">
             <div className="step-header">
               <h2>Tests for {selectedSubject.name}</h2>
-              <div className="search-box-large">
-                <Search />
-                <input
-                  type="text"
-                  placeholder="Search in test questions..."
-                  value={testTextSearch}
-                  onChange={(e) => setTestTextSearch(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleTestSearch()}
-                />
-                <button onClick={handleTestSearch} className="search-action-btn">
-                  Search
+              <div className="frequency-toggle-row">
+                <button
+                  onClick={() => setShowFrequencyView(false)}
+                  className={`view-toggle-btn ${!showFrequencyView ? 'active' : ''}`}
+                >
+                  <FileText size={18} />
+                  All Tests
+                </button>
+                <button
+                  onClick={handleAnalyzeFrequency}
+                  className={`view-toggle-btn ${showFrequencyView ? 'active' : ''}`}
+                  disabled={isLoadingFrequency}
+                >
+                  {isLoadingFrequency ? (
+                    <>
+                      <div className="mini-spinner"></div>
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <BarChart2 size={18} />
+                      Question Frequency
+                    </>
+                  )}
                 </button>
               </div>
             </div>
-            <div className="tests-list">
-              {tests.map((test) => {
-                const questions = formatTestText(test.full_text);
-                const isExpanded = expandedTests[test._id];
-                const fullText = test.full_text;
-                const shouldTruncate = fullText.length > 300;
 
-                return (
-                  <div key={test._id} className="test-card">
-                    <div className="test-header">
-                      <div className="test-icon">
-                        <FileText />
-                      </div>
-                      <div className="test-info">
-                        <h3>{test.exam_period}</h3>
-                        <p className="test-meta">
-                          <Calendar size={14} />
-                          {test.academic_year} • {test.test_type}
-                        </p>
-                        <button className={`view-full-btn ${isExpanded ? 'expanded' : ''}`}
-                          onClick={() => {
-
-                            //todo toggle original file
-
-                          }
-                        }>See original</button> 
-                      </div>
-                    </div>
-                    <div className="test-content">
-                      <ol className={`test-questions ${isExpanded ? 'expanded' : ''}`}>
-                        {questions.map((q, index) => (
-                          <li key={index}>
-                            <div className="test-text">
-                              {q}
-                            </div>
-                          </li>
-                        ))}
-                      </ol>
-                      {shouldTruncate && (
-                        <button
-                          className={`view-full-btn ${isExpanded ? 'expanded' : ''}`}
-                          onClick={() => toggleTest(test._id)}
-                        >
-                          {isExpanded ? 'Show Less' : 'Show More'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-              {tests.length === 0 && !isLoading && (
-                <div className="no-results">
-                  <FileText size={48} />
-                  <p>No tests found for this subject</p>
+            {!showFrequencyView ? (
+              <>
+                <div className="search-box-large" style={{marginBottom: '2rem'}}>
+                  <Search />
+                  <input
+                    type="text"
+                    placeholder="Search in test questions..."
+                    value={testTextSearch}
+                    onChange={(e) => setTestTextSearch(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleTestSearch()}
+                  />
+                  <button onClick={handleTestSearch} className="search-action-btn">
+                    Search
+                  </button>
                 </div>
-              )}
-            </div>
+                <div className="tests-list">
+                  {tests.map((test) => {
+                    const questions = formatTestText(test.full_text);
+                    const isExpanded = expandedTests[test._id];
+                    const fullText = test.full_text;
+                    const shouldTruncate = fullText.length > 300;
+
+                    return (
+                      <div key={test._id} className="test-card">
+                        <div className="test-header">
+                          <div className="test-icon">
+                            <FileText />
+                          </div>
+                          <div className="test-info">
+                            <h3>{test.exam_period}</h3>
+                            <p className="test-meta">
+                              <Calendar size={14} />
+                              {test.academic_year} • {test.test_type}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="test-content">
+                          <ol className={`test-questions ${isExpanded ? 'expanded' : ''}`}>
+                            {questions.map((q, index) => (
+                              <li key={index}>
+                                <div className="test-text">
+                                  {q}
+                                </div>
+                              </li>
+                            ))}
+                          </ol>
+                          {shouldTruncate && (
+                            <button
+                              className={`view-full-btn ${isExpanded ? 'expanded' : ''}`}
+                              onClick={() => toggleTest(test._id)}
+                            >
+                              {isExpanded ? 'Show Less' : 'Show More'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {tests.length === 0 && !isLoading && (
+                    <div className="no-results">
+                      <FileText size={48} />
+                      <p>No tests found for this subject</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              // NEW: Frequency View
+              <div className="frequency-view">
+                {frequencyData && (
+                  <>
+                    <div className="frequency-stats">
+                      <div className="stat-card">
+                        <FileText className="stat-icon" />
+                        <div className="stat-content">
+                          <span className="stat-value">{frequencyData.total_tests}</span>
+                          <span className="stat-label">Total Tests</span>
+                        </div>
+                      </div>
+                      <div className="stat-card">
+                        <BarChart2 className="stat-icon" />
+                        <div className="stat-content">
+                          <span className="stat-value">{frequencyData.total_questions}</span>
+                          <span className="stat-label">Total Questions</span>
+                        </div>
+                      </div>
+                      <div className="stat-card">
+                        <TrendingUp className="stat-icon" />
+                        <div className="stat-content">
+                          <span className="stat-value">{frequencyData.unique_questions}</span>
+                          <span className="stat-label">Unique Questions</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="frequency-list">
+                      <h3 className="frequency-list-title">Question Frequency Analysis</h3>
+                      <p className="frequency-subtitle">Questions are sorted by frequency (most common first)</p>
+                      
+                      {frequencyData.questions.map((q, index) => (
+                        <div key={index} className={`frequency-item ${q.count > 1 ? 'repeated' : ''}`}>
+                          <div className="frequency-header">
+                            <span className={`frequency-badge ${q.count > 3 ? 'high' : q.count > 1 ? 'medium' : 'low'}`}>
+                              {q.count}x
+                            </span>
+                            <span className="question-number">Q{index + 1}</span>
+                          </div>
+                          <div className="frequency-question">
+                            {q.question}
+                          </div>
+                          <div className="frequency-details">
+                            <span className="frequency-detail-label">Appeared in:</span>
+                            <div className="frequency-tags">
+                              {q.exam_periods.map((period, i) => (
+                                <span key={i} className="frequency-tag">{period}</span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
 

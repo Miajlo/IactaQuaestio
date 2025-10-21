@@ -14,6 +14,7 @@ test_router = APIRouter()
 
 from fastapi import UploadFile, File, Form, HTTPException, status
 import asyncio
+from difflib import SequenceMatcher
 
 # Response model that excludes binary data to avoid UTF-8 serialization errors
 class TestResponse(BaseModel):
@@ -183,4 +184,166 @@ async def get_all_tests(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve tests: {str(e)}"
+        )
+
+def similarity_ratio(str1: str, str2: str) -> float:
+    """Calculate similarity between two strings (0 to 1)"""
+    return SequenceMatcher(None, str1.lower().strip(), str2.lower().strip()).ratio()
+
+
+def extract_questions_from_text(full_text: str) -> List[str]:
+    """Extract individual questions from full_text using same logic as frontend"""
+    if not full_text:
+        return []
+
+    # Find first question (with or without parenthesis)
+    first_question_match = None
+    start_index = 0
+    has_parenthesis = True
+
+    # Try finding "1. (" pattern
+    import re
+    match = re.search(r'\n\s*1\.\s*\(', full_text)
+    if match:
+        start_index = full_text.index(match.group(0))
+    else:
+        # Try finding "1. " pattern without parenthesis
+        match = re.search(r'^\s*1\.\s+', full_text, re.MULTILINE)
+        if not match:
+            return []
+        start_index = full_text.index(match.group(0))
+        has_parenthesis = False
+
+    cleaned_text = full_text[start_index:].strip()
+
+    # Split by question numbers
+    if has_parenthesis:
+        question_parts = re.split(r'\n\s*(?=\d+\.\s*\()', cleaned_text)
+    else:
+        question_parts = re.split(r'\n\s*(?=\d+\.\s+)', cleaned_text)
+
+    question_parts = [q.strip() for q in question_parts if q.strip()]
+
+    # Remove question numbers and clean up
+    questions = []
+    for q in question_parts:
+        # Remove number prefix like "1. " or "1. ("
+        without_number = re.sub(r'^\d+\.\s*', '', q)
+        # Join lines and clean
+        cleaned = ' '.join([line.strip() for line in without_number.split('\n') if line.strip()])
+        if cleaned:
+            questions.append(cleaned)
+
+    return questions
+
+
+class QuestionFrequency(BaseModel):
+    question: str
+    count: int
+    test_ids: List[str]
+    exam_periods: List[str]
+
+
+class QuestionAnalysisResponse(BaseModel):
+    subject_code: str
+    total_tests: int
+    total_questions: int
+    unique_questions: int
+    questions: List[QuestionFrequency]
+
+
+@test_router.get("/analyze/{subject_code}", response_model=QuestionAnalysisResponse)
+async def analyze_question_frequency(
+        subject_code: str,
+        similarity_threshold: float = Query(0.85, ge=0.0, le=1.0,
+                                            description="Similarity threshold for matching questions (0.85 = 85% similar)")
+):
+    """
+    Analyze question frequency for a specific subject.
+    Returns statistics about how many times each question appeared across different tests.
+
+    - **subject_code**: The subject code to analyze
+    - **similarity_threshold**: Questions with similarity above this threshold are considered the same (default 0.85)
+    """
+    try:
+        # Get all tests for this subject
+        tests = await Test.find(Test.subject_code == subject_code).to_list()
+
+        if not tests:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No tests found for subject code: {subject_code}"
+            )
+
+        # Extract all questions from all tests
+        all_questions = []
+        for test in tests:
+            questions = extract_questions_from_text(test.full_text)
+            for q in questions:
+                all_questions.append({
+                    'text': q,
+                    'test_id': str(test.id),
+                    'exam_period': test.exam_period
+                })
+
+        # Group similar questions
+        question_groups = []
+        processed = set()
+
+        for i, q1 in enumerate(all_questions):
+            if i in processed:
+                continue
+
+            # Start a new group
+            group = {
+                'question': q1['text'],
+                'count': 1,
+                'test_ids': [q1['test_id']],
+                'exam_periods': [q1['exam_period']]
+            }
+            processed.add(i)
+
+            # Find similar questions
+            for j, q2 in enumerate(all_questions):
+                if j <= i or j in processed:
+                    continue
+
+                # Check similarity
+                sim = similarity_ratio(q1['text'], q2['text'])
+                if sim >= similarity_threshold:
+                    group['count'] += 1
+                    group['test_ids'].append(q2['test_id'])
+                    group['exam_periods'].append(q2['exam_period'])
+                    processed.add(j)
+
+            question_groups.append(group)
+
+        # Sort by frequency (most common first)
+        question_groups.sort(key=lambda x: x['count'], reverse=True)
+
+        # Convert to response model
+        questions_freq = [
+            QuestionFrequency(
+                question=g['question'],
+                count=g['count'],
+                test_ids=g['test_ids'],
+                exam_periods=list(set(g['exam_periods']))  # Remove duplicates
+            )
+            for g in question_groups
+        ]
+
+        return QuestionAnalysisResponse(
+            subject_code=subject_code,
+            total_tests=len(tests),
+            total_questions=len(all_questions),
+            unique_questions=len(question_groups),
+            questions=questions_freq
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Analysis failed: {str(e)}"
         )
