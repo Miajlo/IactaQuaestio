@@ -1,6 +1,6 @@
 # IactaQuaestio
 
-Web aplikacija za upload i analizu ispitnih testova (slike, PDF-ovi, Word dokumenti). Korisnici mogu da postave testove, koji se obrađuju pomoću OCR-a da bi se izvukla pitanja. Sistem analizira učestalost pojavljivanja pitanja na testovima kako bi pomogao studentima da identifikuju često ponavljana pitanja.
+Web aplikacija za upload i analizu ispitnih testova (slike i PDF-ovi). Korisnici mogu da postave testove, koji se obrađuju pomoću OCR-a da bi se izvukla pitanja. Sistem analizira učestalost pojavljivanja pitanja na testovima kako bi pomogao studentima da identifikuju često ponavljana pitanja.
 
 ## Sadržaj
 
