@@ -1,1 +1,1 @@
-Web app for posting files(images, pdfs, word documents....) and analyzing the ammount of times a question appeared on tests.
+Web app for posting files(images and pdfs) and analyzing the amount of times a question appeared on tests.
