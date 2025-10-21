@@ -497,31 +497,41 @@ function SearchTests() {
                 </div>
               </div>
             </div>
-            <div className="cards-grid">
-              {filteredSubjects.map((subject) => (
-                <div
-                  key={subject._id}
-                  className="select-card subject-card"
-                  onClick={() => handleSelectSubject(subject)}
-                >
-                  <div className="card-icon subject-icon">
-                    <FileText />
+          
+            {filteredSubjects.length > 0 && (
+              <div className="cards-grid">
+                {filteredSubjects.map((subject) => (
+                  <div
+                    key={subject._id}
+                    className="select-card subject-card"
+                    onClick={() => handleSelectSubject(subject)}
+                  >
+                    <div className="card-icon subject-icon">
+                      <FileText />
+                    </div>
+                    <h3>{subject.name}</h3>
+                    <span className="card-code">{subject.code}</span>
+                    <div className="subject-meta">
+                      <span className="meta-item">Year {subject.year}</span>
+                      <span className="meta-item">Sem {subject.semester}</span>
+                      <span className="meta-item">{subject.espb} ECTS</span>
+                    </div>
+                    {subject.mandatory ? (
+                      <span className="mandatory-badge">Mandatory</span>
+                    ) : (
+                      <span className="mandatory-badge badge optional">Elective</span>
+                    )}
                   </div>
-                  <h3>{subject.name}</h3>
-                  <span className="card-code">{subject.code}</span>
-                  <div className="subject-meta">
-                    <span className="meta-item">Year {subject.year}</span>
-                    <span className="meta-item">Sem {subject.semester}</span>
-                    <span className="meta-item">{subject.espb} ECTS</span>
-                  </div>
-                  {subject.mandatory ? (
-                    <span className="mandatory-badge">Mandatory</span>
-                  ) : (
-                    <span className="mandatory-badge badge optional">Elective</span>
-                  )}
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
+
+            {filteredSubjects.length === 0 && (
+              <div className="no-results">
+                <h3>No tests for year {selectedYear} found in our database</h3>
+              </div>
+            )}
+            
           </div>
         )}
 
