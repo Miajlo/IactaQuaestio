@@ -417,22 +417,31 @@ function SearchTests() {
                 />
               </div>
             </div>
-            <div className="cards-grid">
-              {filteredFaculties.map((faculty) => (
-                <div
-                  key={faculty._id}
-                  className="select-card"
-                  onClick={() => handleSelectFaculty(faculty)}
-                >
-                  <div className="card-icon faculty-icon">
-                    <BookOpen />
+
+            {filteredFaculties.length > 0 && (
+              <div className="cards-grid">
+                {filteredFaculties.map((faculty) => (
+                  <div
+                    key={faculty._id}
+                    className="select-card"
+                    onClick={() => handleSelectFaculty(faculty)}
+                  >
+                    <div className="card-icon faculty-icon">
+                      <BookOpen />
+                    </div>
+                    <h3>{faculty.name}</h3>
+                    <span className="card-code">{faculty.code}</span>
+                    <p className="card-meta">{faculty.modules.length} modules</p>
                   </div>
-                  <h3>{faculty.name}</h3>
-                  <span className="card-code">{faculty.code}</span>
-                  <p className="card-meta">{faculty.modules.length} modules</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
+
+            {filteredFaculties.length === 0 && (
+              <div className="no-results">
+                <h3>No faculties found in our database</h3>
+              </div>
+            )}
           </div>
         )}
 
@@ -450,22 +459,31 @@ function SearchTests() {
                 />
               </div>
             </div>
-            <div className="cards-grid">
-              {filteredModules.map((module, index) => (
-                <div
-                  key={index}
-                  className="select-card"
-                  onClick={() => handleSelectModule(module)}
-                >
-                  <div className="card-icon module-icon">
-                    <Filter />
+
+            {filteredModules.length > 0 && (
+              <div className="cards-grid">
+                {filteredModules.map((module, index) => (
+                  <div
+                    key={index}
+                    className="select-card"
+                    onClick={() => handleSelectModule(module)}
+                  >
+                    <div className="card-icon module-icon">
+                      <Filter />
+                    </div>
+                    <h3>{module.name}</h3>
+                    <span className="card-code">{module.code}</span>
+                    {module.description && <p className="card-desc">{module.description}</p>}
                   </div>
-                  <h3>{module.name}</h3>
-                  <span className="card-code">{module.code}</span>
-                  {module.description && <p className="card-desc">{module.description}</p>}
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
+
+            {filteredModules.length === 0 && (
+              <div className="no-results">
+                <h3>No modules found <i>{selectedFaculty.name}</i> in our database</h3>
+              </div>
+            )}
           </div>
         )}
 
