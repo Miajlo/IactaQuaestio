@@ -169,7 +169,6 @@ function AdminPanel() {
         fetchData();
       }
       else if(deleteTarget.type === 'test'){
-        // Remove the test from the local state immediately
         console.log('Deleting test with ID:', deleteTarget.id);
         console.log('Current tests:', tests);
         setTests(tests => {
@@ -178,8 +177,7 @@ function AdminPanel() {
           return filtered;
         });
 
-        // Database call - commented out as endpoint not implemented yet
-        // await axiosInstance.delete(`/tests/${deleteTarget.id}`);
+        await axiosInstance.delete(`/tests/${deleteTarget.id}`);
       }
       setShowDeleteModal(false);
       setDeleteTarget(null);

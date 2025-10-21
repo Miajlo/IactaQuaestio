@@ -444,6 +444,67 @@
   margin-bottom: 1rem;
 }
 
+.test-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.show-original-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.show-original-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.show-original-btn:hover::before {
+  left: 100%;
+}
+
+.show-original-btn:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.5);
+}
+
+.original-file-container {
+  width: 100%;
+  height: 800px;
+  background: #f9fafb;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.original-file-viewer {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: white;
+}
+
 .view-full-btn {
   padding: 0.625rem 1.25rem;
   background: #eef2ff;

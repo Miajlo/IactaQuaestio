@@ -1,11 +1,10 @@
-from fastapi import APIRouter, HTTPException, status, Body, Form, File, UploadFile,Query
-
+from fastapi import APIRouter, HTTPException, status, Body, Form, File, UploadFile, Query, Response
 from app.models.test import Test
 from app.models.testuser import TestUser
 from typing import List, Optional
-from bson import Binary
+from bson import Binary, ObjectId
 from pydantic import BaseModel
-
+from bson.errors import InvalidId
 from processing.text_extraction import extract_text_structured, get_text_from_bytes, process_image_from_array, safe_process_image, \
     extract_questions_with_groups
 
@@ -347,3 +346,92 @@ async def analyze_question_frequency(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Analysis failed: {str(e)}"
         )
+
+@test_router.delete("/{test_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_test(test_id: str):
+    try:
+        try:
+            obj_id = ObjectId(test_id)
+        except (InvalidId, Exception):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid test ID format: {test_id}"
+            )
+
+        test = await Test.get(obj_id)
+
+        if not test:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Test with ID {test_id} not found"
+            )
+
+        await test.delete()
+
+        return None
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete test: {str(e)}"
+        )
+
+@test_router.get("/{test_id}/file")
+async def get_test_file(test_id: str):
+    try:
+        try:
+            obj_id = ObjectId(test_id)
+        except (InvalidId, Exception) as e:
+            print(str(e))
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid test ID format: {test_id}"
+            )
+
+        test = await Test.get(obj_id)
+
+        if not test:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Test with ID {test_id} not found"
+            )
+
+        if not test.full_file:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No file found for test with ID {test_id}"
+            )
+
+        mimetype = {
+            "pdf": "application/pdf",
+            "jpg": "image/jpeg",
+            "jpeg": "image/jpeg",
+            "png": "image/png",
+            "tiff": "image/tiff",
+            "bmp": "image/bmp"
+        }
+
+        content_type = mimetype.get(
+            test.file_extension.lower() if test.file_extension else "pdf",
+            "application/octet-stream"
+        )
+
+        return Response(
+            content=bytes(test.full_file),
+            media_type=content_type,
+            headers={
+                "Content-Disposition": f'inline; filename="test_{test_id}.{test.file_extension or "pdf"}"'
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve file: {str(e)}"
+        )
+        

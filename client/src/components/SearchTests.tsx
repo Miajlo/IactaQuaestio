@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, ChevronRight, FileText, Calendar, BookOpen, Filter, X, ArrowLeft, BarChart2, TrendingUp } from "lucide-react";
+import { Search, ChevronRight, FileText, Calendar, BookOpen, Filter, X, ArrowLeft, BarChart2, TrendingUp, ExternalLink } from "lucide-react";
 import "../styles/SearchTests.css";
 import axiosInstance from "../utils/axiosInstance.ts";
 import { useNavigate } from "react-router-dom";
@@ -30,7 +30,7 @@ interface Subject {
 }
 
 interface Test {
-  _id: string;
+  id: string;
   subject_code: string;
   exam_period: string;
   academic_year: string;
@@ -70,6 +70,8 @@ function SearchTests() {
   const [subjectSearch, setSubjectSearch] = useState("");
   const [testTextSearch, setTestTextSearch] = useState("");
   const [expandedTests, setExpandedTests] = useState<Record<string, boolean>>({});
+  const [showingOriginal, setShowingOriginal] = useState<Record<string, boolean>>({});
+  const [originalFileUrls, setOriginalFileUrls] = useState<Record<string, string>>({});
 
   // NEW: Frequency analysis state
   const [showFrequencyView, setShowFrequencyView] = useState(false);
@@ -83,6 +85,15 @@ function SearchTests() {
   useEffect(() => {
     fetchFaculties();
   }, []);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(originalFileUrls).forEach(url => {
+        window.URL.revokeObjectURL(url);
+      });
+    };
+  }, [originalFileUrls]);
 
   const formatTestText = (text: string) => {
     if (!text) return [];
@@ -127,6 +138,46 @@ function SearchTests() {
       ...prev,
       [testId]: !prev[testId]
     }));
+  };
+
+  const handleShowOriginal = async (testId: string) => {
+    if (showingOriginal[testId]) {
+      setShowingOriginal(prev => ({
+        ...prev,
+        [testId]: false
+      }));
+      return;
+    }
+
+    if (originalFileUrls[testId]) {
+      setShowingOriginal(prev => ({
+        ...prev,
+        [testId]: true
+      }));
+      return;
+    }
+
+    try {
+      const response = await axiosInstance.get(`/tests/${testId}/file`, {
+        responseType: 'blob'
+      });
+
+      const blob = new Blob([response.data], { type: response.headers['content-type'] });
+      const url = window.URL.createObjectURL(blob);
+
+      setOriginalFileUrls(prev => ({
+        ...prev,
+        [testId]: url
+      }));
+
+      setShowingOriginal(prev => ({
+        ...prev,
+        [testId]: true
+      }));
+    } catch (error) {
+      console.error("Error fetching original file:", error);
+      alert("Failed to load original file. It may not be available.");
+    }
   };
 
   const fetchFaculties = async () => {
@@ -198,6 +249,7 @@ function SearchTests() {
           subject_code: subject.code
         }
       });
+      console.log(res.data)
       setAllTests(res.data);
       setTests(res.data);
     } catch (error) {
@@ -244,6 +296,10 @@ function SearchTests() {
   };
 
   const resetSearch = () => {
+    Object.values(originalFileUrls).forEach(url => {
+      window.URL.revokeObjectURL(url);
+    });
+
     setStep(1);
     setSelectedFaculty(null);
     setSelectedModule(null);
@@ -256,6 +312,8 @@ function SearchTests() {
     setSubjects([]);
     setShowFrequencyView(false);
     setFrequencyData(null);
+    setShowingOriginal({});
+    setOriginalFileUrls({});
   };
 
   const filteredFaculties = faculties.filter(f =>
@@ -517,12 +575,12 @@ function SearchTests() {
                 <div className="tests-list">
                   {tests.map((test) => {
                     const questions = formatTestText(test.full_text);
-                    const isExpanded = expandedTests[test._id];
+                    const isExpanded = expandedTests[test.id];
                     const fullText = test.full_text;
                     const shouldTruncate = fullText.length > 300;
 
                     return (
-                      <div key={test._id} className="test-card">
+                      <div key={test.id} className="test-card">
                         <div className="test-header">
                           <div className="test-icon">
                             <FileText />
@@ -536,23 +594,42 @@ function SearchTests() {
                           </div>
                         </div>
                         <div className="test-content">
-                          <ol className={`test-questions ${isExpanded ? 'expanded' : ''}`}>
-                            {questions.map((q, index) => (
-                              <li key={index}>
-                                <div className="test-text">
-                                  {q}
-                                </div>
-                              </li>
-                            ))}
-                          </ol>
-                          {shouldTruncate && (
-                            <button
-                              className={`view-full-btn ${isExpanded ? 'expanded' : ''}`}
-                              onClick={() => toggleTest(test._id)}
-                            >
-                              {isExpanded ? 'Show Less' : 'Show More'}
-                            </button>
+                          {showingOriginal[test.id] ? (
+                            <div className="original-file-container">
+                              <iframe
+                                src={originalFileUrls[test.id]}
+                                className="original-file-viewer"
+                                title={`Test ${test.exam_period}`}
+                              />
+                            </div>
+                          ) : (
+                            <ol className={`test-questions ${isExpanded ? 'expanded' : ''}`}>
+                              {questions.map((q, index) => (
+                                <li key={index}>
+                                  <div className="test-text">
+                                    {q}
+                                  </div>
+                                </li>
+                              ))}
+                            </ol>
                           )}
+                          <div className="test-actions">
+                            {!showingOriginal[test.id] && shouldTruncate && (
+                              <button
+                                className={`view-full-btn ${isExpanded ? 'expanded' : ''}`}
+                                onClick={() => {toggleTest(test.id); console.log(test.id);}}
+                              >
+                                {isExpanded ? 'Show Less' : 'Show More'}
+                              </button>
+                            )}
+                            <button
+                              className="show-original-btn"
+                              onClick={() => handleShowOriginal(test.id)}
+                            >
+                              <ExternalLink size={16} />
+                              {showingOriginal[test.id] ? 'Show Text' : 'Show Original'}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
