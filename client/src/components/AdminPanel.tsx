@@ -653,21 +653,32 @@ function AdminPanel() {
                   <div className="form-row">
                     <div className="form-group-admin">
                       <label>Faculty Code</label>
-                      <input
-                        type="text"
+                      <select
                         value={subjectForm.faculty_code}
-                        onChange={(e) => setSubjectForm({...subjectForm, faculty_code: e.target.value})}
-                        placeholder="Faculty code"
-                      />
+                        onChange={(e) => setSubjectForm({...subjectForm, faculty_code: e.target.value, module_code: ""})}
+                      >
+                        <option value="">Select a faculty</option>
+                        {faculties.map((faculty) => (
+                          <option key={faculty.code} value={faculty.code}>
+                            {faculty.name} ({faculty.code})
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div className="form-group-admin">
                       <label>Module Code</label>
-                      <input
-                        type="text"
+                      <select
                         value={subjectForm.module_code}
                         onChange={(e) => setSubjectForm({...subjectForm, module_code: e.target.value})}
-                        placeholder="Module code"
-                      />
+                        disabled={!subjectForm.faculty_code || availableModules.length === 0}
+                      >
+                        <option value="">Select a module</option>
+                        {availableModules.map((module) => (
+                          <option key={module.code} value={module.code}>
+                            {module.name} ({module.code})
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                   <div className="form-row">
